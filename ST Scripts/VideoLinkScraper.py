@@ -1,6 +1,17 @@
-import sys, time, datetime
+#to install package from virtual env, cd to {virtualenv_path}/bin 
+#then do ./python pip install 
+
+import time, datetime
+
 import urllib.request, urllib.error, urllib.parse
+
 from selenium import webdriver
+import subprocess
+
+proc = subprocess.Popen('apt install chromium-chromedriver', shell=True, stdin=None, stdout=open("/dev/null", "w"), stderr=None, executable="/bin/bash")
+proc.wait()
+
+from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -13,7 +24,10 @@ def yt_scrapper_link(url):
     #driver=webdriver.Firefox()
     chrome_options = Options()
     chrome_options.add_argument("--user-data-dir=chrome-data")
-    driver = webdriver.Chrome('chromedriver',options=chrome_options)
+    chrome_options.add_argument("--headless")
+
+    driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
+
     driver.get(url)
     time.sleep(5)
     dt=datetime.datetime.now().strftime("%Y%m%d%H%M")
@@ -29,11 +43,13 @@ def yt_scrapper_link(url):
         height = driver.execute_script("return document.documentElement.scrollHeight")
 
     user_data = driver.find_elements_by_xpath('//*[@id="video-title"]')
+    
     print("The total number of videos catched is: {}".format(len(user_data)))
 
-    # for i in user_data:
-    #     # print(i.get_attribute('href'))
-    #     link = (i.get_attribute('href'))
-    #     f = open(channelid+'-'+dt+'.list', 'a+')
-    #     f.write(link + '\n')
+    for i in user_data:
+        # print(i.get_attribute('href'))
+        link = (i.get_attribute('href'))
+        print(link)
+        # f = open(channelid+'-'+dt+'.list', 'a+')
+        # f.write(link + '\n')
     # f.close
