@@ -17,7 +17,7 @@ import yt_dlp
 yt_url = ['https://www.youtube.com/watch?v=5hEeDh5hoPQ&list=PLd5Z1CCkFEeZv6bj-cBTxWXOy8SN_oLSS']
 
 ydl_opts = {
-'format': 'bv*[height<=480][ext=mp4]+ba[ext=m4a]/b[height<=480][ext=mp4] / wv*+ba/w', #Ensures best settings
+'format': 'bv*[height<=480][ext=mp4]+ba[ext=m4a]/b[height<=480][ext=mp4] / wv*+ba/w', #Ensures 480p and mp4 output
 'writesubtitles': True, #Adds a subtitles file if it exists
 'writeautomaticsub': True, #Adds auto-generated subtitles file
 'subtitle': '--sub-lang en', #writes subtitles file in english
