@@ -11,18 +11,13 @@ Original file is located at
 !pip install yt-dlp
 !pip install webvtt-py
 
-import webvtt
-import pandas as pd
-import os
-import numpy as np
-
 from __future__ import unicode_literals
 import yt_dlp
 
 yt_url = ['https://www.youtube.com/watch?v=5hEeDh5hoPQ&list=PLd5Z1CCkFEeZv6bj-cBTxWXOy8SN_oLSS']
 
 ydl_opts = {
-'format': 'bv*[height<=480][ext=mp4]+ba[ext=m4a]/b[height<=480][ext=mp4] / wv*+ba/w', #Ensures best settings
+'format': 'bv*[height<=480][ext=mp4]+ba[ext=m4a]/b[height<=480][ext=mp4] / wv*+ba/w', #Ensures 480p and mp4 output
 'writesubtitles': True, #Adds a subtitles file if it exists
 'writeautomaticsub': True, #Adds auto-generated subtitles file
 'subtitle': '--sub-lang en', #writes subtitles file in english
@@ -33,6 +28,11 @@ ydl_opts = {
 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
   ydl.download(yt_url)
 print("Download Successful!")
+
+import webvtt
+import pandas as pd
+import os
+import numpy as np
 
 filenames_vtt = [os.fsdecode(file) for file in os.listdir(os.getcwd()) if os.fsdecode(file).endswith(".vtt")]
 
@@ -50,8 +50,8 @@ def convert_vtt(filenames):
 
         text_time['text'] = text_time['text'].str.split('\n').str.get(-1)
         text_time = text_time.replace(r'^\s*$', np.nan, regex=True).dropna()
-        
-        text_time.to_csv('assets/{}.csv'.format(file[:-4]),index=False) #-4 to remove '.vtt'
+
+        text_time.to_csv('assets/{}.csv'.format(file[:-7]),index=False) #-7 to remove '.en.vtt'
         #remove files from local drive
         os.remove(file)
 
@@ -73,7 +73,7 @@ def neat_csv(filecsv):
 
   for file in clean_csv:
     df = pd.read_csv(path+file)
-    text = " ".join(df.text)
+    text = df.text.to_list()
     vidText.append(text)
     csv_vidid.append(file[-18:-7])
 
