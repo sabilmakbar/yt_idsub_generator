@@ -10,6 +10,7 @@ Original file is located at
 #Download module to your Colab
 !pip install yt-dlp
 !pip install webvtt-py
+!pip install nnsplit
 
 from __future__ import unicode_literals
 import yt_dlp
@@ -33,24 +34,29 @@ import webvtt
 import pandas as pd
 import os
 import numpy as np
+from nnsplit import NNSplit
 
 filenames_vtt = [os.fsdecode(file) for file in os.listdir(os.getcwd()) if os.fsdecode(file).endswith(".vtt")]
 
 def convert_vtt(filenames):    
-    #create an assets folder if one does not yet exist
+    #Create an assets folder if one does not yet exist
     if os.path.isdir('{}/assets'.format(os.getcwd())) == False:
         os.makedirs('assets')
-    #extract the text and times from the vtt file
+    #Extract the text and times from the vtt file
     for file in filenames:
         captions = webvtt.read(file)
+
+        #Create dataframe of subtitle filled with start and stop time, and also the text
         text_time = pd.DataFrame()
         text_time['text'] = [caption.text for caption in captions]
         text_time['start'] = [caption.start for caption in captions]
         text_time['stop'] = [caption.end for caption in captions]
 
+        #Replace duplicate values that was indicated by /n
         text_time['text'] = text_time['text'].str.split('\n').str.get(-1)
         text_time = text_time.replace(r'^\s*$', np.nan, regex=True).dropna()
 
+        #convert to csv
         text_time.to_csv('assets/{}.csv'.format(file[:-7]),index=False) #-7 to remove '.en.vtt'
         #remove files from local drive
         os.remove(file)
@@ -62,18 +68,19 @@ csv_files = [os.fsdecode(file) for file in os.listdir(os.getcwd()+'/assets') if 
 path = 'assets/'
 
 def neat_csv(filecsv):
+  #Get rid of the white space from the tile
   for filename in csv_files:
-    os.rename(os.path.join(path, filename), os.path.join(path, filename.replace(' ', ''))) #get rid of the white space
+    os.rename(os.path.join(path, filename), os.path.join(path, filename.replace(' ', '')))
   
   clean_csv = [os.fsdecode(file) for file in os.listdir(os.getcwd()+'/assets')]
 
-  #extract the text and videoid
+  #Extract the text and videoid
   vidText = []
   csv_vidid = []
 
   for file in clean_csv:
     df = pd.read_csv(path+file)
-    text = df.text.to_list()
+    text = " ".join(df.text) #join the text, so it'll be a whole subtitle text
     vidText.append(text)
     csv_vidid.append(file[-18:-7])
 
@@ -81,6 +88,17 @@ def neat_csv(filecsv):
   vid_df['vid_title'] = clean_csv
   vid_df['vid_text'] = vidText
   vid_df['vid_id'] = csv_vidid
+
+  #Create list of text based on a whole subtitle of each video
+  txt = []
+  for text in vid_df['vid_text']:
+    splits = splitter.split([text])[0] #Split the text with NLP, so each split will correspond with a sentence
+
+    a = list([str(sentence) for sentence in splits])
+    txt.append(a)
+
+  del vid_df['vid_text']
+  vid_df['text'] = txt
 
   return vid_df
 
