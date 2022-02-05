@@ -1,4 +1,9 @@
 chrome-data/
 Environment/
+__pycache__/
+.ipynb_checkpoints/
+ST Scripts/__pycache__/
+ST Scripts/.ipynb_checkpoints/
 .DS_Store
-ST Scripts/__pycache__/VideoLinkScraper.cpython-38.pyc
+script_test.py
+test_module.py
