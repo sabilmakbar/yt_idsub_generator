@@ -1,6 +1,7 @@
 #to install package from virtual env, cd to {virtualenv_path}/bin 
 #then do ./python pip install 
 
+from ast import literal_eval
 import time, datetime
 
 import urllib.request, urllib.error, urllib.parse
@@ -29,48 +30,55 @@ import pandas as pd
 import numpy as np
 
 # A Python Selenium Scraper for Retrieve the List of Links from A Channel
-def channel_video_link_scraper(channel_url : str):
+def channel_video_link_scraper(channel_urls: list):
     """Retrieving a list of all public videos in the given channel URL
-    input: channel_url (str) -- an url link of input channel to be scraped
-    output: video_list (list of str) -- a list of all public videos uploaded in that channel
+    input: channel_urls (list of str) -- an url link of input channel to be scraped, has to be a "video" tab link
+    output: video_list (dict) -- a dict of input + all public videos uploaded in that channel 
     Reference: https://github.com/banhao/scrape-youtube-channel-videos-url/blob/master/scrape-youtube-channel-videos-url.py
     """
 
     proc = subprocess.Popen('apt install chromium-chromedriver', shell=True, stdin=None, stdout=open("/dev/null", "w"), stderr=None, executable="/bin/bash")
     proc.wait()
 
-    try:
-        channelid = channel_url.split('/')[4]
-    except:
-        raise ValueError("The variable url {} is not a valid YT Channel Link".format(channel_url))
-    
+    #Assert all inputs are youtube link
+    for url in channel_urls:
+        if "youtube.com" not in url:
+            raise ValueError("This string 'youtube.com' is not in {}, it's not a default YT link!".format(url))
+        if not(url.split('/')[-1] == "videos"):        
+            raise ValueError("The url {} is not a valid YT Channel URL that contains all videos!".format(channel_url))
+
+    video_list_output = []
+
     chrome_options = Options()
     chrome_options.add_argument("--user-data-dir=chrome-data")
     chrome_options.add_argument("--headless")
 
     driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
 
-    driver.get(channel_url)
-    time.sleep(5)
-    dt=datetime.datetime.now().strftime("%Y%m%d%H%M")
-    height = driver.execute_script("return document.documentElement.scrollHeight")
-    lastheight = 0
+    for channel_url in channel_urls:
+        channelid = channel_url.split('/')[-2]
 
-    while True:
-        if lastheight == height:
-            break
-        lastheight = height
-        driver.execute_script("window.scrollTo(0, " + str(height) + ");")
-        time.sleep(2)
+        driver.get(channel_url)
+        time.sleep(5)
         height = driver.execute_script("return document.documentElement.scrollHeight")
+        lastheight = 0
 
-    user_data = driver.find_elements_by_xpath('//*[@id="video-title"]')
-    
-    print("The total number of videos catched is: {}".format(len(user_data)))
+        while True:
+            if lastheight == height:
+                break
+            lastheight = height
+            driver.execute_script("window.scrollTo(0, " + str(height) + ");")
+            time.sleep(2)
+            height = driver.execute_script("return document.documentElement.scrollHeight")
 
-    video_list = [data.get_attribute('href') for data in user_data]
+        user_data = driver.find_elements_by_xpath('//*[@id="video-title"]')
+        
+        print("The total number of videos catched from channel id {} is: {}".format(channelid, len(user_data)))
+
+        video_list = [data.get_attribute('href') for data in user_data]
+        video_list_output.append({"channel_url":channel_url, "public_video_list": video_list})
     
-    return video_list
+    return {"data": video_list_output}
 
 # A Python Metadata Collection for Retrieve the Video Duration
 async def async_yt_metadata_scraper(*args):
@@ -82,6 +90,7 @@ async def async_yt_metadata_scraper(*args):
     """
 
     video_url, timeout = args
+    print("Executing YT Metadata Scraper for link {}.".format(video_url))
 
     # init an HTML Session
     session = AsyncHTMLSession()
@@ -93,14 +102,29 @@ async def async_yt_metadata_scraper(*args):
         return None
     except Exception as e:
         print(e)
+        return None
 
     # execute Java-script
-    await response.html.arender(sleep=1, timeout = timeout)
+    try:
+        await response.html.arender(sleep=1, timeout = timeout)
+    except TimeoutError as Te:
+        print(Te[:-1]+", need to increase default timeout or retry again")
+        await session.close()
+        return None
+    except Exception as e:
+        print(e)
+        await session.close()
+        return None
+
     # create bs object to parse HTML
     soup = bs(response.html.raw_html, "html.parser")
 
-    upload_date = soup.find("meta", itemprop="uploadDate")['content']
-    duration = soup.find("span", {"class": "ytp-time-duration"}).text
+    try:
+        upload_date = soup.find("meta", itemprop="uploadDate")['content']
+        duration = soup.find("span", {"class": "ytp-time-duration"}).text
+        vid_title = soup.find("meta", itemprop="name")["content"]
+    except TypeError as Te:
+        return None
     
     duration_splitted = duration.split(":")
     if len(duration_splitted) > 3:
@@ -118,17 +142,25 @@ async def async_yt_metadata_scraper(*args):
             except:
                 pass
     
-    # get the uploaded date
-    output_dict = {"duration": duration,
-                    "duration_s": duration_s,
-                    "upload_date": upload_date}
+    await session.close()
+    
+    # get the metadata dict
+    output_dict = {"title": vid_title,
+                   "duration": duration,
+                   "duration_s": duration_s,
+                   "upload_date": upload_date}
 
     return output_dict
 
-def yt_metadata_scraper(video_url: str, timeout : int = 60):
+async def async_yt_list_metadata_scraper(*args):
+    video_urls, timeout = args
+    return await asyncio.gather(*[async_yt_metadata_scraper(video_url, timeout) for video_url in video_urls])
+
+# def yt_metadata_scraper(video_url: str, timeout: int = 60):
+def yt_metadata_scraper(video_urls: list, timeout: int = 60):
     """Retrieving a dict of metadata from YT URL input using asyncronous method
     input: 
-        channel_url (str) -- an url link of input video to be retrieved of its metadata
+        channel_url (list of str) -- an list of url links of input video to be retrieved of its metadata
         timeout (int, optional) -- a timeout variable for waiting response
     output: output_dict (dict) -- a dict of metadata, which can be found on function "async_yt_metadata_scraper"
     """
@@ -137,7 +169,15 @@ def yt_metadata_scraper(video_url: str, timeout : int = 60):
         import nest_asyncio
         nest_asyncio.apply()
 
-    return asyncio.run(async_yt_metadata_scraper(video_url, timeout))
+    result_list = []
+    for video_url in video_urls:
+        result_list.append({"video_url": video_url, "meta": asyncio.run(async_yt_metadata_scraper(video_url, timeout))})
+    
+    # #async version, but doesn't work bcs of runtime issue
+    # result_list = asyncio.run(async_yt_list_metadata_scraper(video_urls, timeout))
+    
+    output_dict = {"data": result_list}
+    return output_dict
 
 def yt_subtitle_downloader(video_urls: list, folder_path_to_save: str = os.getcwd(), ydl_opts : dict=None):
     """Retrieving subtitle info and timestamp from YT URL input.
@@ -196,5 +236,3 @@ def yt_subtitle_file_vtt_to_csv_converter(saved_folder_path: str = os.getcwd()):
         text_time.to_csv('{}/{}.csv'.format(saved_folder_path, file[:-7].replace(" ","")),index=False) #-7 to remove '.en.vtt'
         #remove files from local drive
         os.remove(os.path.join(saved_folder_path,file))
-
-
