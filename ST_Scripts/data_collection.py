@@ -2,12 +2,12 @@
 
 import os
 from pathlib import Path
-from tracemalloc import stop
 import pandas as pd
 import pickle as pkl
-from ast import literal_eval
 from datetime import datetime
 import re
+
+from params import link_scrapper_params, meta_scrapper_params
 
 print("The version of pickle used is {}.".format(pkl.format_version))
 
@@ -15,13 +15,7 @@ print("The version of pickle used is {}.".format(pkl.format_version))
 
 from yt_scraper import channel_video_link_scraper
 
-channel_link = ["https://www.youtube.com/channel/UCREgA-BmOocJ9Is_bZV6aJQ/videos",
-                "https://www.youtube.com/abc/videos",
-                "https://www.youtube.com/c/SharkTankAustralia/videos",
-                "https://www.youtube.com/c/DragonsDenGlobal/videos",
-                "https://www.youtube.com/c/DragonsDenCanada/videos"]
-
-links_data = channel_video_link_scraper(channel_link)
+links_data = channel_video_link_scraper(link_scrapper_params["channel_url_list"])
 
 # %%
 all_public_links = []
@@ -32,10 +26,8 @@ for data in links_data["data"]:
 
 # %%
 
-load_checkpoint_file = True
-
-filename = "Scraped Video Links from Channel.pkl"
-save_path = os.path.join(str(Path(os.getcwd()).parents[0]),filename)
+load_checkpoint_file = link_scrapper_params["checkpoint_bool"]
+save_path = link_scrapper_params["save_load_path"]
 
 if load_checkpoint_file:
     output = pd.read_pickle(save_path)
@@ -45,7 +37,8 @@ else: #else, save existing file
     with open(save_path, "wb") as f:
         pkl.dump(output,f)
     output = pd.DataFrame({"channel_url": channel_url, "video_url": all_public_links})
-    
+
+# %%
 if "video_meta" not in output.columns:
     data_to_scrape = output
 else:
@@ -114,8 +107,8 @@ print(output.shape)
 
 # %% load checkpoint
 
-load_checkpoint_file = True
-filename = "Scraped Video Links from Channel.pkl"
+load_checkpoint_file = False
+filename = "Scraped Video Meta from Channel.pkl"
 save_path = os.path.join(str(Path(os.getcwd()).parents[0]),filename)
 
 
@@ -128,64 +121,63 @@ else:
 print(output.info())
 
 # %%
-scrape = False
+scrape = True
 
 from yt_scraper import yt_subtitle_downloader
 from yt_scraper import yt_subtitle_file_vtt_to_csv_converter
 
+download_lists = output["video_url"].drop_duplicates().to_list()
 download_folder_path = os.path.join(str(Path(os.getcwd()).parents[0]),"yt_subtitle_data")
 
 if scrape:
-    
-    yt_subtitle_downloader(all_public_links,download_folder_path)
-    
+    yt_subtitle_downloader(download_lists, download_folder_path)
     yt_subtitle_file_vtt_to_csv_converter(download_folder_path)
 
-# %%
-def neat_csv(csv_folder_path: str=os.getcwd()):
-  #Get rid of the white space from the tile
-  csv_files = [os.fsdecode(file) for file in os.listdir(csv_folder_path) if os.fsdecode(file).endswith('.csv')]
+ # %%
+# def neat_csv(csv_folder_path: str=os.getcwd()):
+#   #Get rid of the white space from the tile
+#   csv_files = [os.fsdecode(file) for file in os.listdir(csv_folder_path) if os.fsdecode(file).endswith('.csv')]
   
-  if len(csv_files) == 0:
-      raise ValueError("The length of available csv files under directory {} is 0.".format(csv_folder_path))
+#   if len(csv_files) == 0:
+#       raise ValueError("The length of available csv files under directory {} is 0.".format(csv_folder_path))
 
-#   #Extract the text and videoid
-#   vidText = []
-#   csv_vidid = []
+# #   #Extract the text and videoid
+# #   vidText = []
+# #   csv_vidid = []
 
-  for file in enumerate(csv_files):
-    df = pd.read_csv(os.path.join(csv_folder_path,file))
-#     text = " ".join(df.text) #join the text, so it'll be a whole subtitle text
-#     #text = df.text.to_list()
-#     vidText.append(text)
-#     csv_vidid.append(file[-18:-7])
+#   for file in enumerate(csv_files):
+#     df = pd.read_csv(os.path.join(csv_folder_path,file))
+# #     text = " ".join(df.text) #join the text, so it'll be a whole subtitle text
+# #     #text = df.text.to_list()
+# #     vidText.append(text)
+# #     csv_vidid.append(file[-18:-7])
 
-#   vid_df = pd.DataFrame()
-#   vid_df['vid_title'] = clean_csv
-#   vid_df['vid_text'] = vidText
-#   vid_df['vid_id'] = csv_vidid
+# #   vid_df = pd.DataFrame()
+# #   vid_df['vid_title'] = clean_csv
+# #   vid_df['vid_text'] = vidText
+# #   vid_df['vid_id'] = csv_vidid
 
-#   #Create list of text based on a whole subtitle of each video
-#   txt = []
-#   splitter = NNSplit.load("en")
-#   #t2d = text2digits.Text2Digits()
+# #   #Create list of text based on a whole subtitle of each video
+# #   txt = []
+# #   splitter = NNSplit.load("en")
+# #   #t2d = text2digits.Text2Digits()
 
-#   for text in vid_df['vid_text']:
-#     splits = splitter.split([text])[0] #Split the text with NLP, to correspond with a sentence
+# #   for text in vid_df['vid_text']:
+# #     splits = splitter.split([text])[0] #Split the text with NLP, to correspond with a sentence
 
-#     a = list([text2int(re.sub(r'(\d)\s+(\d)', r'\1\2', str(sentence))) for sentence in splits])
-#     txt.append(a)
+# #     a = list([text2int(re.sub(r'(\d)\s+(\d)', r'\1\2', str(sentence))) for sentence in splits])
+# #     txt.append(a)
 
-#   del vid_df['vid_text']
-#   vid_df['text'] = txt
+# #   del vid_df['vid_text']
+# #   vid_df['text'] = txt
 
-  return df
-# %%
-foldername = "yt_subtitle_data"
-load_path = os.path.join(str(Path(os.getcwd()).parents[0]),foldername)
-print(load_path)
+#   return df
+# # %%
+# foldername = "yt_subtitle_data"
+# load_path = os.path.join(str(Path(os.getcwd()).parents[0]),foldername)
+# print(load_path)
 
-output = neat_csv(load_path)
+# output = neat_csv(load_path)
 # %%
 from nnsplit import NNSplit
 splitter = NNSplit.load("en")
