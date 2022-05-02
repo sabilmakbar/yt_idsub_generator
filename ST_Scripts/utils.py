@@ -29,6 +29,7 @@ import webvtt
 import pandas as pd
 import numpy as np
 
+
 # A Python Selenium Scraper for Retrieve the List of Links from A Channel
 def channel_video_link_scraper(channel_urls: list):
     """Retrieving a list of all public videos in the given channel URL
@@ -86,6 +87,7 @@ def channel_video_link_scraper(channel_urls: list):
         video_list_output.append({"channel_url":channel_url, "public_video_list": video_list})
     
     return {"data": video_list_output}
+
 
 # A Python Metadata Collection for Retrieve the Video Duration
 async def async_yt_metadata_scraper(*args, shorts_identifier = "/shorts/"):
@@ -174,11 +176,12 @@ async def async_yt_metadata_scraper(*args, shorts_identifier = "/shorts/"):
 
     return output_dict
 
+
 async def async_yt_list_metadata_scraper(*args):
     video_urls, timeout = args
     return await asyncio.gather(*[async_yt_metadata_scraper(video_url, timeout) for video_url in video_urls])
 
-# def yt_metadata_scraper(video_url: str, timeout: int = 60):
+
 def yt_metadata_scraper(video_urls: list, timeout: int = 60):
     """Retrieving a dict of metadata from YT URL input using asyncronous method
     input: 
@@ -199,6 +202,7 @@ def yt_metadata_scraper(video_urls: list, timeout: int = 60):
     
     output_dict = {"data": result_list}
     return output_dict
+
 
 def yt_subtitle_downloader(video_urls: list, folder_path_to_save: str = os.getcwd(), ydl_opts : dict=None):
     """Retrieving subtitle info and timestamp from YT URL input.
@@ -227,6 +231,7 @@ def yt_subtitle_downloader(video_urls: list, folder_path_to_save: str = os.getcw
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download(video_urls)
+
 
 def yt_subtitle_file_vtt_to_csv_converter(saved_folder_path: str = os.getcwd()):
     """Changing and parsing all file from vtt format (yt-dl download file) to csv.
