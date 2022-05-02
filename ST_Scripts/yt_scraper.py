@@ -1,8 +1,7 @@
 #to install package from virtual env, cd to {virtualenv_path}/bin 
 #then do ./python pip install 
 
-from ast import literal_eval
-import time, datetime
+import time, datetime, os
 
 import urllib.request, urllib.error, urllib.parse
 
@@ -21,10 +20,11 @@ from requests_html import AsyncHTMLSession
 from bs4 import BeautifulSoup as bs # importing BeautifulSoup
 
 import asyncio
+import nest_asyncio
 
 import yt_dlp
-import os
 
+#pip install webvtt-py (to get package webvtt)
 import webvtt
 import pandas as pd
 import numpy as np
@@ -37,8 +37,11 @@ def channel_video_link_scraper(channel_urls: list):
     Reference: https://github.com/banhao/scrape-youtube-channel-videos-url/blob/master/scrape-youtube-channel-videos-url.py
     """
 
-    proc = subprocess.Popen('apt install chromium-chromedriver', shell=True, stdin=None, stdout=open("/dev/null", "w"), stderr=None, executable="/bin/bash")
-    proc.wait()
+    try: #works only on linux, to install chromedriver
+        proc = subprocess.Popen('apt install chromium-chromedriver', shell=True, stdin=None, stdout=open("/dev/null", "w"), stderr=None, executable="/bin/bash")
+        proc.wait()
+    except:
+        pass
 
     #Assert all inputs are youtube link
     for url in channel_urls:
@@ -52,11 +55,15 @@ def channel_video_link_scraper(channel_urls: list):
     chrome_options = Options()
     chrome_options.add_argument("--user-data-dir=chrome-data")
     chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument('--no-sandbox')
 
     driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
 
-    for channel_url in channel_urls:
+    for idx, channel_url in enumerate(channel_urls, start=1):
         channelid = channel_url.split('/')[-2]
+
+        print(f"Retrieving videos list from data number {idx} with channel_id {channelid}")
 
         driver.get(channel_url)
         time.sleep(5)
@@ -81,7 +88,7 @@ def channel_video_link_scraper(channel_urls: list):
     return {"data": video_list_output}
 
 # A Python Metadata Collection for Retrieve the Video Duration
-async def async_yt_metadata_scraper(*args):
+async def async_yt_metadata_scraper(*args, shorts_identifier = "/shorts/"):
     """Async Method for Retrieving metadata of given public videos.
     Has to be called within function "yt_metadata_scraper" to make the output works
     as intended.
@@ -90,6 +97,11 @@ async def async_yt_metadata_scraper(*args):
     """
 
     video_url, timeout = args
+
+    if shorts_identifier in video_url:
+        print("YT Shorts link detected: {}.".format(video_url))
+        return None
+    
     print("Executing YT Metadata Scraper for link {}.".format(video_url))
 
     # init an HTML Session
@@ -123,12 +135,22 @@ async def async_yt_metadata_scraper(*args):
         upload_date = soup.find("meta", itemprop="uploadDate")['content']
         duration = soup.find("span", {"class": "ytp-time-duration"}).text
         vid_title = soup.find("meta", itemprop="name")["content"]
-    except TypeError as Te:
+        print("Informations available!.")
+
+        print(f"Upload date: {upload_date}")
+        print(f"Upload date: {duration}")
+        print(f"Upload date: {vid_title}")
+
+    except (TypeError, AttributeError) as e:
+        print("Informations unavailable!")
         return None
     
     duration_splitted = duration.split(":")
     if len(duration_splitted) > 3:
         print("Warning, the duration is >24 h. Returning duration_s variable as None!")
+        duration_s = None
+    elif duration_splitted == "":
+        print("Warning, the duration info is invalid. Returning duration_s variable as None!")
         duration_s = None
     else:
         duration_s = int(duration_splitted[-1])
@@ -166,7 +188,6 @@ def yt_metadata_scraper(video_urls: list, timeout: int = 60):
     """
 
     if asyncio.get_event_loop().is_running(): # Only patch if needed (i.e. running in Notebook, Spyder, etc)
-        import nest_asyncio
         nest_asyncio.apply()
 
     result_list = []
