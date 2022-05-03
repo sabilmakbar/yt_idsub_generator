@@ -31,7 +31,7 @@ import numpy as np
 
 
 # A Python Selenium Scraper for Retrieve the List of Links from A Channel
-def channel_video_link_scraper(channel_urls: list):
+def channel_video_link_scrapper(channel_urls: list):
     """Retrieving a list of all public videos in the given channel URL
     input: channel_urls (list of str) -- an url link of input channel to be scraped, has to be a "video" tab link
     output: video_list (dict) -- a dict of input + all public videos uploaded in that channel 
@@ -54,7 +54,6 @@ def channel_video_link_scraper(channel_urls: list):
     video_list_output = []
 
     chrome_options = Options()
-    chrome_options.add_argument("--user-data-dir=chrome-data")
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument('--no-sandbox')
@@ -90,11 +89,11 @@ def channel_video_link_scraper(channel_urls: list):
 
 
 # A Python Metadata Collection for Retrieve the Video Duration
-async def async_yt_metadata_scraper(*args, shorts_identifier = "/shorts/"):
+async def async_yt_metadata_scrapper(*args, shorts_identifier = "/shorts/"):
     """Async Method for Retrieving metadata of given public videos.
-    Has to be called within function "yt_metadata_scraper" to make the output works
+    Has to be called within function "yt_metadata_scrapper" to make the output works
     as intended.
-    It follows the input from "yt_metadata_scraper"
+    It follows the input from "yt_metadata_scrapper"
     Reference: https://www.thepythoncode.com/article/get-youtube-data-python
     """
 
@@ -177,17 +176,17 @@ async def async_yt_metadata_scraper(*args, shorts_identifier = "/shorts/"):
     return output_dict
 
 
-async def async_yt_list_metadata_scraper(*args):
+async def async_yt_list_metadata_scrapper(*args):
     video_urls, timeout = args
-    return await asyncio.gather(*[async_yt_metadata_scraper(video_url, timeout) for video_url in video_urls])
+    return await asyncio.gather(*[async_yt_metadata_scrapper(video_url, timeout) for video_url in video_urls])
 
 
-def yt_metadata_scraper(video_urls: list, timeout: int = 60):
+def yt_metadata_scrapper(video_urls: list, timeout: int = 60):
     """Retrieving a dict of metadata from YT URL input using asyncronous method
     input: 
         channel_url (list of str) -- an list of url links of input video to be retrieved of its metadata
         timeout (int, optional) -- a timeout variable for waiting response
-    output: output_dict (dict) -- a dict of metadata, which can be found on function "async_yt_metadata_scraper"
+    output: output_dict (dict) -- a dict of metadata, which can be found on function "async_yt_metadata_scrapper"
     """
 
     if asyncio.get_event_loop().is_running(): # Only patch if needed (i.e. running in Notebook, Spyder, etc)
@@ -195,13 +194,30 @@ def yt_metadata_scraper(video_urls: list, timeout: int = 60):
 
     result_list = []
     for video_url in video_urls:
-        result_list.append({"video_url": video_url, "meta": asyncio.run(async_yt_metadata_scraper(video_url, timeout))})
+        result_list.append({"video_url": video_url, "meta": asyncio.run(async_yt_metadata_scrapper(video_url, timeout))})
     
     # #async version, but doesn't work bcs of runtime issue
-    # result_list = asyncio.run(async_yt_list_metadata_scraper(video_urls, timeout))
+    # result_list = asyncio.run(async_yt_list_metadata_scrapper(video_urls, timeout))
     
     output_dict = {"data": result_list}
     return output_dict
+
+
+#unpack video_meta output from dict to df
+def video_meta_retriever(value_to_retrieve: dict):
+    """Cast A Misparsed Object from String to its Original Object
+    input: value_to_retrieve (str) -- value to be converted
+    output: retrieved_value (object from ast_literal result, or None if ValueError) -- returned value
+    """
+
+    try:
+        retrieved_value = (value_to_retrieve["meta"]["title"],
+                            value_to_retrieve["meta"]["duration_s"],
+                            value_to_retrieve["meta"]["upload_date"])
+    except TypeError as e:
+        print(e)
+        retrieved_value = (None, None, None)
+    return retrieved_value
 
 
 def yt_subtitle_downloader(video_urls: list, folder_path_to_save: str = os.getcwd(), ydl_opts : dict=None):
