@@ -1,4 +1,3 @@
-from gc import is_finalized
 import os
 from pathlib import Path
 

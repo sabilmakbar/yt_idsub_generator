@@ -91,6 +91,3 @@ class YTScrapperDF(YTDataScrapper):
         df_input = df_input.loc[df_filtered_index, :]
 
         return df_input
-
-            
-
