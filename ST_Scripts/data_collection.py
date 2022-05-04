@@ -47,29 +47,18 @@ channel_whitelist = meta_scrapper_params["whitelisted_channels"]
 
 video_title_keyword = meta_scrapper_params["whitelisted_titles_phrase"]
 
-# %%
-# output = output[output["channel_url"].isin(channel_whitelist)|
-#                 output["title"].str.strip().str.lower().str.replace("\W","",regex=True).str.contains("|".join(video_title_keyword))]
-
 output = scrapper_df.video_result_filterer(output, "channel_url", "title", channel_whitelist, video_title_keyword)
 
 print(output.shape)
 
 # %% load checkpoint
+load_checkpoint_file = meta_scrapper_params["checkpoint_bool"]
+save_path = meta_scrapper_params["save_load_path"]
 
-load_checkpoint_file = False
-filename = "Scraped Video Meta from Channel.pkl"
-save_path = os.path.join(str(Path(os.getcwd()).parents[0]),filename)
+actions = "load" if load_checkpoint_file else "dump"
+scrapper_result = None if actions=="load" else output
 
 output = df_pickler(save_path, actions, scrapper_result)
-
-if load_checkpoint_file:
-    output = pd.read_pickle(save_path)
-else:
-    with open(save_path, "wb") as f:
-        pkl.dump(output,f)
-
-print(output.info())
 
 # %%
 do_scrape = not(subtitle_scrapper_params["checkpoint_bool"])
@@ -83,7 +72,7 @@ yt_dlp_options = None if subtitle_scrapper_params["yt_dlp_options"] is None else
 if do_scrape:
     scrapper_general.yt_subtitle_downloader(download_lists, download_folder_path, yt_dlp_options)
 
-# # %%
+# %%
 # def neat_csv(csv_folder_path: str=os.getcwd()):
 #   #Get rid of the white space from the tile
 #   csv_files = [os.fsdecode(file) for file in os.listdir(csv_folder_path) if os.fsdecode(file).endswith('.csv')]
@@ -95,8 +84,8 @@ if do_scrape:
 # #   vidText = []
 # #   csv_vidid = []
 
-#   for file in enumerate(csv_files):
-#     df = pd.read_csv(os.path.join(csv_folder_path,file))
+#   for file_name in enumerate(csv_files_name):
+#     df = pd.read_csv(os.path.join(csv_folder_path,file_name))
 # #     text = " ".join(df.text) #join the text, so it'll be a whole subtitle text
 # #     #text = df.text.to_list()
 # #     vidText.append(text)
@@ -158,44 +147,3 @@ if do_scrape:
     
 #     # for word in text_to_check.split():
 
-# # %%
-
-# #make a pair between 2 consecutive rows
-# #if the len is 1, keep appending, else split the text
-# #set the start and stop timestamp accordingly
-# #assumption: a text in a row doesn't consist of 2 sentences
-
-# text_appended_list, stop_time_list = [], []
-# start_time_list = [output.loc[output.index[0],"start"]]
-
-# appended_text = output.loc[output.index[0],"text"]
-# start_time = output.loc[output.index[0],"start"]
-# stop_time = output.loc[output.index[0],"stop"]
-
-# for index, data in output.iterrows():
-#     if index == output.shape[0]-1:
-#         text_appended_list.append(appended_text)
-#         stop_time_list.append(data["stop"])
-#         break
-    
-#     if appended_text == "":
-#         appended_text = output.loc[index,"text"]
-
-#     print(appended_text)
-
-#     if len(splitter.split([appended_text])[0]) > 1:
-#         print(len(splitter.split([appended_text])[0]))
-#         text_appended_list.append(appended_text)
-#         stop_time_list.append(output.loc[index,"stop"])
-#         appended_text = ""
-
-#         start_time_list.append(output.loc[index+1,"start"])
-#     else:
-#         appended_text = (appended_text + " " + output.loc[index+1,"text"]).replace("\n", " ")
-
-        
-# # %%
-# for index, text in enumerate(text_appended_list, start=1):
-#     print(index)
-#     print(text)
-# # %%
