@@ -1,0 +1,10 @@
+chrome-data/
+Environment/
+__pycache__/
+.ipynb_checkpoints/
+ST Scripts/__pycache__/
+ST Scripts/.ipynb_checkpoints/
+yt_subtitle_data/
+.DS_Store
+script_test.py
+test_module.py
