@@ -1,9 +1,11 @@
 try:
     from utils.yt_scrapper_utils import *
     from utils.general_utils import *
+    from splitter_class import TextSplitter
 except ImportError:
     from .utils.yt_scrapper_utils import *
     from .utils.general_utils import *
+    from .splitter_class import TextSplitter
 
 class YTDataScrapper():
     def __init__(self):
@@ -29,6 +31,7 @@ class YTDataScrapper():
     def yt_subtitle_downloader(self, video_urls: list, folder_path_to_save: str = os.getcwd(), ydl_opts : dict=None):
         yt_subtitle_downloader(video_urls, folder_path_to_save, ydl_opts)
         yt_subtitle_file_vtt_to_csv_converter(folder_path_to_save)
+
 
 
 class YTScrapperDF(YTDataScrapper):
@@ -73,7 +76,7 @@ class YTScrapperDF(YTDataScrapper):
         
         df_1 = df_filterer(df_input, channel_col_name, None, whitelisted_channels)
 
-        if whitelisted_title is not None:
+        if whitelisted_title is not None and not isinstance(whitelisted_title, str):
             try: 
                 iter(whitelisted_title) 
             except TypeError as e: 
@@ -88,6 +91,30 @@ class YTScrapperDF(YTDataScrapper):
         else:
             df_filtered_index = df_1.index.union(df_2.index)
         
-        df_input = df_input.loc[df_filtered_index, :]
+        df_input = df_input.loc[df_filtered_index, :].reset_index(drop=True)
 
         return df_input
+
+    def split_yt_subtitles(self, splitter: TextSplitter, colnames_to_gather: list, df_path: str=os.getcwd(), **kwargs):
+        try:
+            os.listdir(df_path)
+        except NotADirectoryError:
+            if os.fsdecode(df_path).endswith('.csv'): 
+                csv_file_names_list = [os.fsdecode(df_path)]
+        else:
+            csv_file_names_list = [os.fsdecode(file) for file in os.listdir(df_path) if os.fsdecode(file).endswith('.csv')]
+        
+        if len(csv_file_names_list) == 0: raise AssertionError("The csv file must exist!")
+
+        if len(colnames_to_gather)==0:
+            raise ValueError("The colnames to gather must be a non-zero length!")
+
+        for idx, file_name in enumerate(csv_file_names_list, start=1):
+            print("Processing file: {} out of {}".format(idx, len(file_name)))
+            
+            df = pd.read_csv(os.path.join(csv_file_names_list,file_name))
+
+            if not all([col_name in df.columns for col_name in colnames_to_gather]):
+                raise KeyError("Not all requested columns presents on the DF!")
+
+            sen, start, stop = splitter.split_yt_subtitles(df, **kwargs)
