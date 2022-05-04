@@ -5,13 +5,13 @@ import pickle
 
 def dt_str_stamp_lin(start, end, text:str, time_format = "%H:%M:%S"):
     text = re.sub(r"\s+", r" ", text)
-    word_pos = [(ele.start()+1, ele.end()) for ele in re.finditer(r'\S+', text)]
+    word_pos = [(ele.start()+1, ele.end()+1) for ele in re.finditer(r'\S+', text)]
     text_len = len(text)
 
     word_dt_stamp = list()
 
     def lin_pos_dt_stamp(str_pos):
-        stamp = dt.strptime(start, time_format) + (dt.strptime(end, time_format) - dt.strptime(start, time_format))*str_pos/text_len
+        stamp = dt.strptime(start, time_format) + (dt.strptime(end, time_format) - dt.strptime(start, time_format))*(str_pos-1)/text_len
         return dt.strftime(stamp, time_format+r".%f")
 
     for start_word_pos, end_word_pos in word_pos:
