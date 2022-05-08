@@ -8,6 +8,7 @@ def is_number(x):
         return False
     return True
 
+
 def text2int (textnum, numwords={}):
     units = [
         '0', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight',
