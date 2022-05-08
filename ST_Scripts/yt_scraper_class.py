@@ -1,3 +1,6 @@
+from xml.dom import ValidationErr
+
+
 try:
     from utils.yt_scrapper_utils import *
     from utils.general_utils import *
@@ -38,6 +41,18 @@ class YTScrapperDF(YTDataScrapper):
     def __init__(self):
         super().__init__()
 
+    #DF Loader with executor functions
+    def df_executor(self, path_dir: str, load_checkpoint: bool, method_to_execute=None, **kwargs):
+        if not load_checkpoint and method_to_execute is None:
+            raise AssertionError("The method must be not-null when the checkpoint hasn't been reached!")
+        
+        actions = "load" if load_checkpoint else "dump"
+        df_scrapper_result = None if actions=="load" else method_to_execute(**kwargs)
+
+        df_output = df_pickler(path_dir, actions, df_scrapper_result)
+        
+        return df_output
+
     # Pandas Output Version of Links Scrapper
     def df_channel_video_link_scrapper(self, video_urls: list):
         channel_url, all_public_links = self.channel_video_link_scrapper(video_urls)
@@ -67,6 +82,7 @@ class YTScrapperDF(YTDataScrapper):
                                                         video_meta_retriever(x[col_name_meta]), axis=1, result_type="expand")
         
         df_input.loc[df_input["title"].isnull(), col_name_meta] = None
+        df_pickler(save_path, "dump", df_input)
 
         print("Finished Unpacking YT Metadata!")
         return df_input
@@ -95,7 +111,7 @@ class YTScrapperDF(YTDataScrapper):
 
         return df_input
 
-    def split_yt_subtitles(self, splitter: TextSplitter, colnames_to_gather: list, df_path: str=os.getcwd(), **kwargs):
+    def split_yt_subtitles(self, splitter: TextSplitter, colnames_to_gather_mapper: dict, df_path: str=os.getcwd(), **kwargs):
         try:
             os.listdir(df_path)
         except NotADirectoryError:
@@ -106,15 +122,37 @@ class YTScrapperDF(YTDataScrapper):
         
         if len(csv_file_names_list) == 0: raise AssertionError("The csv file must exist!")
 
-        if len(colnames_to_gather)==0:
-            raise ValueError("The colnames to gather must be a non-zero length!")
+        if len(colnames_to_gather_mapper)==0 or not isinstance(colnames_to_gather_mapper, dict):
+            raise ValueError("The colnames to gather must be a dict with non-zero length!")
+
+        if not all([isinstance(dict_val, int) and 1<=dict_val<=5 for dict_val in dict.values()]):
+            raise ValueError("The value of col-dict mapper must be an integer between 1 and 5")
+
+        if len(set(colnames_to_gather_mapper.values())) != len(colnames_to_gather_mapper.values()):
+            raise AssertionError("The dict-values are non-unique!")
+
+        sen_list, start_list, stop_list, vid_id_list = [], [], [], []
 
         for idx, file_name in enumerate(csv_file_names_list, start=1):
             print("Processing file: {} out of {}".format(idx, len(file_name)))
             
             df = pd.read_csv(os.path.join(csv_file_names_list,file_name))
 
-            if not all([col_name in df.columns for col_name in colnames_to_gather]):
+            if not all([col_name in df.columns for col_name in colnames_to_gather_mapper.keys()]):
                 raise KeyError("Not all requested columns presents on the DF!")
 
             sen, start, stop = splitter.split_yt_subtitles(df, **kwargs)
+            
+            sen_list.append(sen)
+            start_list.append(start)
+            stop_list.append(stop)
+            vid_id_list.append(file_name[-18:-7])
+        
+        all_values_list = [csv_file_names_list, vid_id_list, sen_list, start_list, stop_list]
+
+        data_dict = dict()
+        for key, value in colnames_to_gather_mapper.items(): 
+            data_dict[key] = all_values_list[value-1]
+        
+        return pd.DataFrame(data_dict)
+
