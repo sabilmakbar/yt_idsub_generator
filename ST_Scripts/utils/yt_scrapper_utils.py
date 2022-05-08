@@ -1,7 +1,7 @@
 #to install package from virtual env, cd to {virtualenv_path}/bin 
 #then do ./python pip install 
 
-import time, datetime, os
+import time, datetime, os, re
 
 import urllib.request, urllib.error, urllib.parse
 
@@ -101,7 +101,8 @@ async def async_yt_metadata_scrapper(*args, shorts_identifier = "/shorts/"):
 
     if shorts_identifier in video_url:
         print("YT Shorts link detected: {}.".format(video_url))
-        return None
+        return {"title": False, "duration": False,
+                "duration_s": False, "upload_date": False}
     
     print("Executing YT Metadata Scraper for link {}.".format(video_url))
 
@@ -139,21 +140,18 @@ async def async_yt_metadata_scrapper(*args, shorts_identifier = "/shorts/"):
         print("Informations available!.")
 
         print(f"Upload date: {upload_date}")
-        print(f"Upload date: {duration}")
-        print(f"Upload date: {vid_title}")
+        print(f"Video duration: {duration}")
+        print(f"Video name: {vid_title}")
 
     except (TypeError, AttributeError) as e:
         print("Informations unavailable!")
         return None
     
-    duration_splitted = duration.split(":")
-    if len(duration_splitted) > 3:
-        print("Warning, the duration is >24 h. Returning duration_s variable as None!")
-        duration_s = None
-    elif duration_splitted == "":
-        print("Warning, the duration info is invalid. Returning duration_s variable as None!")
+    if not re.match("^\d{1,2}(:\d{2}){,2}$", duration):
+        print("Warning, the duration info is invalid or > 1day. Returning duration_s variable as None!")
         duration_s = None
     else:
+        duration_splitted = duration.split(":")
         duration_s = int(duration_splitted[-1])
         try:
             duration_s += int(duration_splitted[-2])*60
@@ -194,11 +192,15 @@ def yt_metadata_scrapper(video_urls: list, timeout: int = 60):
 
     result_list = []
     for video_url in video_urls:
-        result_list.append({"video_url": video_url, "meta": asyncio.run(async_yt_metadata_scrapper(video_url, timeout))})
+        output = asyncio.run(async_yt_metadata_scrapper(video_url, timeout))
+        try:
+            output.keys()
+        except AttributeError as e: #the result is None
+            result_list.append(None)
+        else:
+            result_list.append({"video_url": video_url, "meta": output})
     
-    # #async version, but doesn't work bcs of runtime issue
-    # result_list = asyncio.run(async_yt_list_metadata_scrapper(video_urls, timeout))
-    
+
     output_dict = {"data": result_list}
     return output_dict
 
