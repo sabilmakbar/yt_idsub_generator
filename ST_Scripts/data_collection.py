@@ -1,5 +1,4 @@
 # %% Package Import
-
 import os
 from pathlib import Path
 import pandas as pd
@@ -30,16 +29,19 @@ print("The version of pickle used is {}.".format(pkl.format_version))
 # %% 
 
 load_checkpoint_file = link_scrapper_params["checkpoint_bool"]
-save_path = link_scrapper_params["save_load_path"]
+save_path_links = link_scrapper_params["save_load_path"]
 
-actions = "load" if load_checkpoint_file else "dump"
-scrapper_result = None if actions=="load" else scrapper_df.df_channel_video_link_scrapper(link_scrapper_params["channel_url_list"])
-
-output = df_pickler(save_path, actions, scrapper_result)
+output = scrapper_df.df_executor(save_path_links, load_checkpoint_file, scrapper_df.df_channel_video_link_scrapper, video_urls = link_scrapper_params["channel_url_list"])
 
 # %%
+# load_checkpoint_file = meta_scrapper_params["checkpoint_bool"]
+# save_path_meta = meta_scrapper_params["save_load_path"]
 
-output = scrapper_df.pd_yt_metadata_scrapper(output, "video_meta", save_path, meta_scrapper_params["batch_size"])
+# actions = "load" if load_checkpoint_file else "dump"
+# scrapper_result = None if actions=="load" else scrapper_df.pd_yt_metadata_scrapper(output, "video_meta", save_path_meta, meta_scrapper_params["batch_size"])
+# output = df_pickler(save_path_links, actions, scrapper_result)
+
+output = scrapper_df.pd_yt_metadata_scrapper(output, "video_meta", save_path_links, meta_scrapper_params["batch_size"])
 
 # %% filter data to be downloaded its subtitle
 
@@ -92,7 +94,7 @@ if do_scrape:
 # #     csv_vidid.append(file[-18:-7])
 
 # #   vid_df = pd.DataFrame()
-# #   vid_df['vid_title'] = clean_csv
+# #   vid_df['vid_title'] = csv_files_name
 # #   vid_df['vid_text'] = vidText
 # #   vid_df['vid_id'] = csv_vidid
 
@@ -117,33 +119,3 @@ if do_scrape:
 # print(load_path)
 
 # output = neat_csv(load_path)
-# %%
-# from nnsplit import NNSplit
-# splitter = NNSplit.load("en")
-
-# text="""
-# artificial neural networks (ANNs), usually simply called neural networks (NNs), are computing systems inspired by the biological neural networks that constitute animal brains
-# an ANN is based on a collection of connected units or nodes called artificial neurons, which loosely model the neurons in a biological brain
-# each connection, like the synapses in a biological brain, can transmit a signal to other neurons
-# an artificial neuron receives a signal then processes it and can signal neurons connected to it
-# the "signal" at a connection is a real number, and the output of each neuron is computed by some non-linear function of the sum of its inputs
-# """
-
-# splits = splitter.split([text])[0] #Split the text with NLP, to correspond with a sentence
-# # %%
-# for split in splits:
-#     print(split)
-# # %%
-
-# start_time_list, stop_time_list = [], []
-# for index, data in output.iterrows():
-#     start_time_word, stop_time_word = [], []
-#     text_to_check = re.sub(data["text"],"\s{2-}"," ")
-#     start_time = datetime.strptime(data["start"], "%H:%M:%S.f")
-#     stop_time = datetime.strptime(data["stop"], "%H:%M:%S.f")
-
-#     start_time_s = start_time.hour * 3600 + start_time.minute * 60 + start_time.second + start_time.microsecond/1000
-#     stop_time_s = stop_time.hour * 3600 + stop_time.minute * 60 + stop_time.second + stop_time.microsecond/1000
-    
-#     # for word in text_to_check.split():
-
