@@ -1,7 +1,8 @@
+# %%
 import os
 from pathlib import Path
 
-## new section -- links scrapper
+# %%
 
 channel_links = [
     "https://www.youtube.com/channel/UCREgA-BmOocJ9Is_bZV6aJQ/videos",
@@ -11,7 +12,7 @@ channel_links = [
     "https://www.youtube.com/c/DragonsDenCanada/videos"
 ]
 
-is_finished = False
+is_finished = True
 foldername_res_video_urls_scrapper = str(Path(os.getcwd()).parents[0])
 filename_res_video_urls_scrapper = "Scraped Video Links from Channel.pkl"
 
