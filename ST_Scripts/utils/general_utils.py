@@ -60,7 +60,7 @@ def df_filterer(df_input: pd.DataFrame, col_name: str, src_regex_text_preproces:
 
     col_name_copy = col_name + "_copy"
     
-    df_input[col_name_copy] = df_input[col_name]
+    df_input[col_name_copy] = df_input[col_name].astype("str")
 
     if alpha_lower:
         df_input[col_name_copy] = df_input[col_name_copy].str.lower()
@@ -74,10 +74,10 @@ def df_filterer(df_input: pd.DataFrame, col_name: str, src_regex_text_preproces:
         iterator = iter(whitelisted_value) 
     except TypeError as e: 
         print(e)
-
+    
     if isinstance(whitelisted_value, str):
         df_filtered_index = df_input[df_input[col_name_copy].str.contains(whitelisted_value)].index
-    else:
+    elif whitelisted_value is not None:
         df_filtered_index = df_input[df_input[col_name_copy].isin(whitelisted_value)].index
 
     if not(whitelist):
