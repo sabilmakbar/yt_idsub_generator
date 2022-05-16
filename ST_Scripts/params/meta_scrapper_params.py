@@ -15,7 +15,7 @@ whitelisted_title_phrases = [
 ]
 
 #save it as pickle
-is_finished = False
+is_finished = True
 foldername_res_video_meta_scrapper = str(Path(os.getcwd()).parents[0])
 filename_res_video_meta_scrapper = "Scraped Video Meta from Channel.pkl"
 

@@ -3,7 +3,7 @@ from pathlib import Path
 
 ## new section -- links scrapper
 
-is_finished = False
+is_finished = True
 foldername_res_video_urls_scrapper = str(Path(os.getcwd()).parents[0])
 child_folder_name = "yt_subtitle_data"
 
