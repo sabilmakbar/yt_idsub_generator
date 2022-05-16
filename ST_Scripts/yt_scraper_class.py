@@ -41,7 +41,8 @@ class YTScrapperDF(YTDataScrapper):
     def __init__(self):
         super().__init__()
 
-    #DF Loader with executor functions
+
+    #DF Loader or Dumper with executor functions (must be passed using **kwargs)
     def df_loader_or_dumper(self, path_dir: str, load_checkpoint: bool, method_to_execute=None, **kwargs):        
         actions = "load" if load_checkpoint else "dump"
         df_scrapper_result = None if method_to_execute is None or actions == "load" else method_to_execute(**kwargs)
@@ -50,10 +51,12 @@ class YTScrapperDF(YTDataScrapper):
         
         return df_output
 
+
     # Pandas Output Version of Links Scrapper
     def df_channel_video_link_scrapper(self, video_urls: list):
         channel_url, all_public_links = self.channel_video_link_scrapper(video_urls)
         return iter_to_df_creator(("channel_url", "video_url"), channel_url, all_public_links)
+
 
     # Pandas Input Version of Metadata Scrapper (with batch-processing and saving)
     def pd_yt_metadata_scrapper(self, df_input: pd.DataFrame, col_name_meta: str, save_path: str, batch_size: int = 10):
@@ -84,11 +87,12 @@ class YTScrapperDF(YTDataScrapper):
         print("Finished Unpacking YT Metadata!")
         return df_input
 
+    #Scrapped Data Filterer using Title Pattern Key or Channel Name key
     def video_result_filterer(self, df_input: pd.DataFrame, channel_col_name:str, title_col_name:str, 
                                 whitelisted_channels=None, whitelisted_title=None, filter_conditional_and:bool=False):
         
         df = df_input.dropna()
-        
+
         df_1 = df_filterer(df, channel_col_name, None, whitelisted_channels)
 
         if whitelisted_title is not None and not isinstance(whitelisted_title, str):
@@ -109,6 +113,7 @@ class YTScrapperDF(YTDataScrapper):
         df_input = df_input.loc[df_filtered_index, :].reset_index(drop=True)
 
         return df_input
+
 
     def split_yt_subtitles(self, splitter: TextSplitter, colnames_to_gather_mapper: dict, df_path: str=os.getcwd(), **kwargs):
         try:
