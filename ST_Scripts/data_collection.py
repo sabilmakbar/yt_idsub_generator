@@ -55,11 +55,12 @@ do_scrape = not(subtitle_scrapper_params["checkpoint_bool"])
 download_lists = output[subtitle_scrapper_params["df_links_col_name"]].drop_duplicates().to_list()
 download_folder_path = subtitle_scrapper_params["save_load_path"]
 
-yt_dlp_options = None if subtitle_scrapper_params["yt_dlp_options"] is None else subtitle_scrapper_params["yt_dlp_options"]
-    
+yt_dlp_options = subtitle_scrapper_params["yt_dlp_options"]
 
 if do_scrape:
     scrapper_general.yt_subtitle_downloader(download_lists, download_folder_path, yt_dlp_options)
+    if len(os.listdir(download_folder_path) != len(download_lists)):
+        raise AssertionError("The length of the downloaded subtitle doesn't match with its expected!")
 
 # %%
 # def neat_csv(csv_folder_path: str=os.getcwd()):
