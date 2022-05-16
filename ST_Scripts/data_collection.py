@@ -31,15 +31,9 @@ print("The version of pickle used is {}.".format(pkl.format_version))
 load_checkpoint_file = link_scrapper_params["checkpoint_bool"]
 save_path_links = link_scrapper_params["save_load_path"]
 
-output = scrapper_df.df_executor(save_path_links, load_checkpoint_file, scrapper_df.df_channel_video_link_scrapper, video_urls = link_scrapper_params["channel_url_list"])
+output = scrapper_df.df_loader_or_dumper(save_path_links, load_checkpoint_file, scrapper_df.df_channel_video_link_scrapper, video_urls = link_scrapper_params["channel_url_list"])
 
 # %%
-# load_checkpoint_file = meta_scrapper_params["checkpoint_bool"]
-# save_path_meta = meta_scrapper_params["save_load_path"]
-
-# actions = "load" if load_checkpoint_file else "dump"
-# scrapper_result = None if actions=="load" else scrapper_df.pd_yt_metadata_scrapper(output, "video_meta", save_path_meta, meta_scrapper_params["batch_size"])
-# output = df_pickler(save_path_links, actions, scrapper_result)
 
 output = scrapper_df.pd_yt_metadata_scrapper(output, "video_meta", save_path_links, meta_scrapper_params["batch_size"])
 
@@ -49,18 +43,11 @@ channel_whitelist = meta_scrapper_params["whitelisted_channels"]
 
 video_title_keyword = meta_scrapper_params["whitelisted_titles_phrase"]
 
-output = scrapper_df.video_result_filterer(output, "channel_url", "title", channel_whitelist, video_title_keyword)
-
-print(output.shape)
-
-# %% load checkpoint
 load_checkpoint_file = meta_scrapper_params["checkpoint_bool"]
 save_path = meta_scrapper_params["save_load_path"]
 
-actions = "load" if load_checkpoint_file else "dump"
-scrapper_result = None if actions=="load" else output
-
-output = df_pickler(save_path, actions, scrapper_result)
+output = scrapper_df.df_loader_or_dumper(save_path_links, load_checkpoint_file, scrapper_df.video_result_filterer, df_input=output, 
+                                         channel_col_name="channel_url", title_col_name="title", whitelisted_channels=channel_whitelist, whitelisted_title=video_title_keyword)
 
 # %%
 do_scrape = not(subtitle_scrapper_params["checkpoint_bool"])
