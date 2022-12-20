@@ -1,9 +1,10 @@
-from time import time
+import re, os
+
 import pandas as pd
+
+from time import time
 from nnsplit import NNSplit
 from datetime import datetime as dt
-import re
-import os
 
 try:
     from utils.general_utils import dt_str_stamp_lin
