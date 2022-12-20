@@ -222,13 +222,18 @@ def video_meta_retriever(value_to_retrieve: dict):
     return retrieved_value
 
 
-def yt_subtitle_downloader(video_urls: list, folder_path_to_save: str = os.getcwd(), ydl_opts : dict=None):
-    """Retrieving subtitle info and timestamp from YT URL input.
-    It will save the downloaded files into "path_to_save" variables.
-    It is recommended to fill in folder_path_to_save rather than leave it as default.
-    input: 
-        channel_url (list of str) -- a list of url links of input video to be scraped
-        path_to_save (str, optional) -- a path for storing result (defaults to current working directory)
+def yt_subtitle_downloader(video_urls: list, folder_path_to_save: str = os.getcwd(), ydl_opts : dict=None, lang: str="id"):
+    """
+    This function will download the subtitle file of the video(s) from the input list of youtube links,
+    and save it in the specified folder path
+    
+    input:
+        video_urls (list): list of youtube video links
+        folder_path_to_save (str): The folder path where you want to save the subtitles
+        ydl_opts (dict): a dictionary of options to pass to the downloader
+        lang (str, optional): the language of the subtitles you want to download, default to "id" (Indonesian)
+    output:
+        None (a file of format .vtt)
     """
 
     #check if "youtube.com" contains in the list input
@@ -237,12 +242,13 @@ def yt_subtitle_downloader(video_urls: list, folder_path_to_save: str = os.getcw
             raise ValueError("This string 'youtube.com' is not in {}, it's not a default YT link!".format(url))
     
     #reference on outtmpl: https://stackoverflow.com/questions/32482230/how-to-set-up-default-download-location-in-youtube-dl/34958672
+    #check on subtitles availability: yt-dlp --list-subs {any_video_links}
     if ydl_opts is None:
         ydl_opts = {
             'format': 'bv*[height<=480][ext=mp4]+ba[ext=m4a]/b[height<=480][ext=mp4] / wv*+ba/w', #Ensures best settings
             'writesubtitles': True, #Adds a subtitles file if it exists
             'writeautomaticsub': True, #Adds auto-generated subtitles file
-            'subtitle': '--sub-lang en', #writes subtitles file in english
+            'subtitleslangs' : [lang], #set the default lang for subtitle (or auto-subtitle)
             'skip_download': True, #skips downloading the video file, if we want to download the vid just change into false
             'outtmpl': folder_path_to_save + '/%(title)s.%(ext)s'
         }
