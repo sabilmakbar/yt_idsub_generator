@@ -226,7 +226,7 @@ def yt_subtitle_downloader(video_urls: list, folder_path_to_save: str = os.getcw
     """
     This function will download the subtitle file of the video(s) from the input list of youtube links,
     and save it in the specified folder path
-    
+
     input:
         video_urls (list): list of youtube video links
         folder_path_to_save (str): The folder path where you want to save the subtitles
