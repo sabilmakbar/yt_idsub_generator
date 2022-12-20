@@ -159,4 +159,3 @@ class YTScrapperDF(YTDataScrapper):
             data_dict[key] = all_values_list[value-1]
         
         return pd.DataFrame(data_dict)
-

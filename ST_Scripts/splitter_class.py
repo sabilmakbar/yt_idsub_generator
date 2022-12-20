@@ -1,9 +1,10 @@
-from time import time
+import re, os
+
 import pandas as pd
+
+from time import time
 from nnsplit import NNSplit
 from datetime import datetime as dt
-import re
-import os
 
 try:
     from utils.general_utils import dt_str_stamp_lin
@@ -123,7 +124,3 @@ class TextSplitter():
                 text_appended = text_appended + " " + curr_idx_data[subtitle_col_name]
 
         return text_output_list, ts_start_output_list, ts_stop_output_list
-
-    
-
-
