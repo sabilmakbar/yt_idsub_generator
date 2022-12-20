@@ -2,16 +2,16 @@ import os
 from pathlib import Path
 
 channel_links = [
-    "https://www.youtube.com/channel/UCREgA-BmOocJ9Is_bZV6aJQ/videos",
-    "https://www.youtube.com/abc/videos",
+    "",
+    "https://www.youtube.com/@CNBC_ID/videos",
     "https://www.youtube.com/c/SharkTankAustralia/videos",
     "https://www.youtube.com/c/DragonsDenGlobal/videos",
     "https://www.youtube.com/c/DragonsDenCanada/videos"
 ]
 
-is_finished = True
+is_finished = False
 foldername_res_video_urls_scrapper = str(Path(os.getcwd()).parents[0])
-filename_res_video_urls_scrapper = "Scraped Video Links from Channel.pkl"
+filename_res_video_urls_scrapper = "Scraped Video Links from Channel (ID Version).pkl"
 
 save_path_res_video_urls_scrapper = os.path.join(foldername_res_video_urls_scrapper, 
                                                  filename_res_video_urls_scrapper)
