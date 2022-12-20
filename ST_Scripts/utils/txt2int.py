@@ -9,7 +9,7 @@ def is_number(x):
     return True
 
 
-def text2int (textnum, numwords={}):
+def text2int(textnum, numwords={}):
     units = [
         '0', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight',
         'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen',
@@ -80,13 +80,12 @@ def text2int (textnum, numwords={}):
             scale, increment = from_numword(word)
             onnumber = True
 
-            
+
             if lastunit and (word not in scales):                                                                                                                                                                                                                                         
                 # Assume this is part of a string of individual numbers to                                                                                                                                                                                                                
                 # be flushed, such as a zipcode "one two three four five"                                                                                                                                                                                                                 
                 curstring += repr(result + current)                                                                                                                                                                                                                                       
                 result = current = 0                                                                                                                                                                                                                                                      
-            
 
             if scale > 1:                                                                                                                                                                                                                                                                 
                 current = max(1, current)                                                                                                                                                                                                                                                 
@@ -107,4 +106,3 @@ def text2int (textnum, numwords={}):
         curstring += repr(result + current)
 
     return curstring
-  

@@ -123,7 +123,3 @@ class TextSplitter():
                 text_appended = text_appended + " " + curr_idx_data[subtitle_col_name]
 
         return text_output_list, ts_start_output_list, ts_stop_output_list
-
-    
-
-

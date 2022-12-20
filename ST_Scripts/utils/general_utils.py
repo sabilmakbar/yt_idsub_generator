@@ -36,7 +36,7 @@ def df_pickler(file_path: str, actions: str, df_input=None):
             pickle.dump(df_input, pickle_file)
         with open(txt_file_path, "w") as text_file:
             text_file.write(pickle.format_version)
-        
+
         return df_input
 
     else:
@@ -54,12 +54,12 @@ def df_filterer(df_input: pd.DataFrame, col_name: str, src_regex_text_preproces:
 
     if src_regex_text_preproces not in [None, "white_remove", "alphanum"]:
         raise AssertionError("The variable src_regex_text_preprocess gets unknown params!")
-    
+
     if whitelisted_value is None:
         return df_input
 
     col_name_copy = col_name + "_copy"
-    
+
     df_input[col_name_copy] = df_input[col_name].astype("str")
 
     if alpha_lower:
@@ -74,7 +74,7 @@ def df_filterer(df_input: pd.DataFrame, col_name: str, src_regex_text_preproces:
         iterator = iter(whitelisted_value) 
     except TypeError as e: 
         print(e)
-    
+
     if isinstance(whitelisted_value, str):
         df_filtered_index = df_input[df_input[col_name_copy].str.contains(whitelisted_value)].index
     elif whitelisted_value is not None:
@@ -82,10 +82,10 @@ def df_filterer(df_input: pd.DataFrame, col_name: str, src_regex_text_preproces:
 
     if not(whitelist):
         df_filtered_index = df_input.index.difference(df_filtered_index)
-    
+
     if drop_temp_col:
         df_input.drop(columns=col_name_copy, inplace=True)
-    
+
     df_filtered = df_input.loc[df_filtered_index, :]
 
     return df_filtered
