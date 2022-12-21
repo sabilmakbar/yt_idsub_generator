@@ -2,17 +2,10 @@ import os
 from pathlib import Path
 
 num_batch_meta_scrapper = 10
-whitelisted_channels_scrapped = [
-    "https://www.youtube.com/channel/UCREgA-BmOocJ9Is_bZV6aJQ/videos",
-    "https://www.youtube.com/c/SharkTankAustralia/videos",
-    "https://www.youtube.com/c/DragonsDenGlobal/videos",
-    "https://www.youtube.com/c/DragonsDenCanada/videos"
-]
+whitelisted_channels_scrapped = None
 
 #lowercase no sym
-whitelisted_title_phrases = [
-    "sharktank", "dragons?den"
-]
+whitelisted_title_phrases = None
 
 #save it as pickle
 is_finished = False
