@@ -9,16 +9,16 @@ import re
 try:
     from yt_scraper_class import YTScrapperDF, YTDataScrapper as YTGeneralScrapper
     from utils.general_utils import *
-    from params.link_scrapper_params import link_scrapper_params
-    from params.meta_scrapper_params import meta_scrapper_params
-    from params.subtitle_scrapper_params import subtitle_scrapper_params
+    from params.link_scrapper_params_01 import link_scrapper_params
+    from params.meta_scrapper_params_02 import meta_scrapper_params
+    from params.subtitle_scrapper_params_03 import subtitle_scrapper_params
 
 except ImportError: #do a relative import
     from .yt_scraper_class import YTScrapperDF, YTDataScrapper as YTGeneralScrapper
     from .utils.general_utils import *
-    from .params.link_scrapper_params import link_scrapper_params
-    from .params.meta_scrapper_params import meta_scrapper_params
-    from .params.subtitle_scrapper_params import subtitle_scrapper_params
+    from .params.link_scrapper_params_01 import link_scrapper_params
+    from .params.meta_scrapper_params_02 import meta_scrapper_params
+    from .params.subtitle_scrapper_params_03 import subtitle_scrapper_params
 
 scrapper_df = YTScrapperDF()
 scrapper_general = YTGeneralScrapper()
