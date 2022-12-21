@@ -2,22 +2,15 @@ import os
 from pathlib import Path
 
 num_batch_meta_scrapper = 10
-whitelisted_channels_scrapped = [
-    "https://www.youtube.com/channel/UCREgA-BmOocJ9Is_bZV6aJQ/videos",
-    "https://www.youtube.com/c/SharkTankAustralia/videos",
-    "https://www.youtube.com/c/DragonsDenGlobal/videos",
-    "https://www.youtube.com/c/DragonsDenCanada/videos"
-]
+whitelisted_channels_scrapped = None
 
 #lowercase no sym
-whitelisted_title_phrases = [
-    "sharktank", "dragons?den"
-]
+whitelisted_title_phrases = None
 
 #save it as pickle
-is_finished = True
+is_finished = False
 foldername_res_video_meta_scrapper = str(Path(os.getcwd()).parents[0])
-filename_res_video_meta_scrapper = "Scraped Video Meta from Channel.pkl"
+filename_res_video_meta_scrapper = "Scraped Video Meta from Channel (ID version).pkl"
 
 save_path_res_video_meta_scrapper = os.path.join(foldername_res_video_meta_scrapper, 
                                                  filename_res_video_meta_scrapper)

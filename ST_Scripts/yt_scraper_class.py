@@ -10,6 +10,7 @@ except ImportError:
     from .utils.general_utils import *
     from .splitter_class import TextSplitter
 
+
 class YTDataScrapper():
     def __init__(self):
         pass
@@ -34,7 +35,6 @@ class YTDataScrapper():
     def yt_subtitle_downloader(self, video_urls: list, folder_path_to_save: str = os.getcwd(), ydl_opts : dict=None):
         yt_subtitle_downloader(video_urls, folder_path_to_save, ydl_opts)
         yt_subtitle_file_vtt_to_csv_converter(folder_path_to_save)
-
 
 
 class YTScrapperDF(YTDataScrapper):
