@@ -1,20 +1,14 @@
 #to install package from virtual env, cd to {virtualenv_path}/bin 
 #then do ./python pip install 
 
-import time, datetime, os, re
-
-import urllib.request, urllib.error, urllib.parse
+import time, os, re
 
 from selenium import webdriver
 import subprocess
 
 from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import InvalidArgumentException
 from selenium.webdriver.chrome.options import Options
-
+from selenium.webdriver.common.by import By
 
 from requests_html import AsyncHTMLSession 
 from bs4 import BeautifulSoup as bs # importing BeautifulSoup
@@ -31,9 +25,12 @@ import numpy as np
 
 
 # A Python Selenium Scraper for Retrieve the List of Links from A Channel
-def channel_video_link_scrapper(channel_urls: list):
+def channel_video_link_scrapper(channel_urls: list, wait_time_load: int=10, wait_time_scroll: int=5):
     """Retrieving a list of all public videos in the given channel URL
-    input: channel_urls (list of str) -- an url link of input channel to be scraped, has to be a "video" tab link
+    input:
+        >> channel_urls (list of str) -- an url link of input channel to be scraped, has to be a "video" tab link
+        >> wait_time_load (int, optional) -- params to set selenium wait (or sleep) to load that URL, default to 10s
+        >> wait_time_scroll (int, optional) -- params to set selenium wait (or sleep) to load that URL, default to 4s
     output: video_list (dict) -- a dict of input + all public videos uploaded in that channel 
     Reference: https://github.com/banhao/scrape-youtube-channel-videos-url/blob/master/scrape-youtube-channel-videos-url.py
     """
@@ -66,7 +63,7 @@ def channel_video_link_scrapper(channel_urls: list):
         print(f"Retrieving videos list from data number {idx} with channel_id {channelid}")
 
         driver.get(channel_url)
-        time.sleep(5)
+        time.sleep(wait_time_load)
         height = driver.execute_script("return document.documentElement.scrollHeight")
         lastheight = 0
 
@@ -75,16 +72,20 @@ def channel_video_link_scrapper(channel_urls: list):
                 break
             lastheight = height
             driver.execute_script("window.scrollTo(0, " + str(height) + ");")
-            time.sleep(2)
+            time.sleep(wait_time_scroll)
             height = driver.execute_script("return document.documentElement.scrollHeight")
 
-        user_data = driver.find_elements_by_xpath('//*[@id="video-title"]')
-        
+        time.sleep(wait_time_load)
+        user_data = driver.find_elements(By.XPATH, '//*[@id="video-title-link"]')
+
         print("The total number of videos catched from channel id {} is: {}".format(channelid, len(user_data)))
 
-        video_list = [data.get_attribute('href') for data in user_data]
+        video_list = [data.get_attribute("href") for data in user_data]
         video_list_output.append({"channel_url":channel_url, "public_video_list": video_list})
-    
+
+    #close the window
+    driver.quit()
+
     return {"data": video_list_output}
 
 
