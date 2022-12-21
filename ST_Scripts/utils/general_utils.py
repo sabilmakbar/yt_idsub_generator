@@ -1,11 +1,10 @@
-# %%
 import pandas as pd
 import re
 from datetime import datetime as dt
 import pickle
 
 
-def dt_str_stamp_lin(start=None, end=None, text:str or list=None, time_format = "%H:%M:%S"):
+def dt_str_stamp_lin(start, end, text:str or list, time_format = "%H:%M:%S"):
     """
     It takes a string of text, and a start and end time, and returns a list of tuples, where
     each tuple contains the start and end time of each word in the text
@@ -22,15 +21,16 @@ def dt_str_stamp_lin(start=None, end=None, text:str or list=None, time_format = 
     #split by whitespace
     if isinstance(text, str):
         #cleanse double white-space
-        text = re.sub(r"\s+", r" ", text)
+        text = re.sub(r"\s+", r" ", text.strip())
         word_pos = [(ele.start()+1, ele.end()+1) for ele in re.finditer(r'\S+', text)]
         text_len = len(text)
     #split by list len
     else:
-        word_pos = list()
+        word_pos, sum_len = list(), 0
         #example: ["saya", "makan", "nasi"]
         #expected output: [1, 5], [7,]
         for text_partition in text:
+            text_partition = re.sub(r"\s+", r" ", text_partition.strip())
             if len(word_pos) == 0: #start of the list
                 start_pos = 1
                 word_pos.append((start_pos, len(text_partition)+start_pos))
@@ -38,7 +38,8 @@ def dt_str_stamp_lin(start=None, end=None, text:str or list=None, time_format = 
                 skip_whitespace = 1
                 start_pos = word_pos[-1][1] + skip_whitespace
                 word_pos.append((start_pos, len(text_partition)+start_pos))
-        text_len = (len(text)-1) + len("".join(text))
+            sum_len += len(text_partition)
+        text_len = (len(text)-1) + sum_len
 
     word_dt_stamp = list()
 
