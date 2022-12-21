@@ -43,8 +43,8 @@ class TextSplitter():
             else:
                 pos_end_list.append(pos_end_list[idx-1]+num_words)
         
-        return list(zip(pos_start_list, pos_end_list))
-    
+        return list(zip(pos_start_list, pos_end_list)), splits
+
 
     def word_time_stamp(self, start:str, end:str, text_input:str, time_format = "%H:%M:%S"):
         names = ["ts", "word_pos", "text"]
@@ -53,9 +53,9 @@ class TextSplitter():
         return dict(zip(names, data))
 
     def sentence_time_stamp(self, start: str, end: str, text_input: str, time_format: str="%H:%M:%S", split_result=False):
-        ts = dt_str_stamp_lin(start, end, self.text_preprocess(text_input), time_format)[0]
-        
-        word_pos = self.word_pos_split_sentence(text_input, word_start=0)
+        word_pos, text_splitted = self.word_pos_split_sentence(text_input, word_start=0)
+
+        ts = dt_str_stamp_lin(start, end, text_splitted, time_format)[0]
 
         sentence_ts = []
         for start, end in word_pos:
