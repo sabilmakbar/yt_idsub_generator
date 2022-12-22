@@ -3,7 +3,9 @@ from pathlib import Path
 
 ## new section -- links scrapper
 
-is_finished = False
+is_finished_downloading = False
+is_finished_processing = False
+
 foldername_res_video_urls_scrapper = str(Path(os.getcwd()).parents[0])
 child_folder_name = "yt_subtitle_data"
 
@@ -14,9 +16,14 @@ yt_dlp_options = None
 save_path_res_video_urls_scrapper = os.path.join(foldername_res_video_urls_scrapper, 
                                                  child_folder_name)
 
+final_csv_name = "cleaned_data_subtitle_yt.csv"
+
 subtitle_scrapper_params = {
-    "checkpoint_bool": is_finished,
+    "checkpoint_bool_downloading": is_finished_downloading,
     "save_load_path": save_path_res_video_urls_scrapper,
     "df_links_col_name": df_links_col_name,
-    "yt_dlp_options": yt_dlp_options
+    "yt_dlp_options": yt_dlp_options,
+
+    "checkpoint_bool_processing": is_finished_processing,
+    "save_final_path": os.path.join(foldername_res_video_urls_scrapper, final_csv_name)
 }
