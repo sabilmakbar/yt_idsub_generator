@@ -16,8 +16,8 @@ class YTDataScrapper():
         pass
 
     # A Python Selenium Scraper for Retrieve the List of Links from A Channel
-    def channel_video_link_scrapper(self, channel_urls: list):
-        links_data = channel_video_link_scrapper(channel_urls)
+    def channel_video_link_scrapper(self, channel_urls: list, wait_time_load: int=10, wait_time_scroll: int=3):
+        links_data = channel_video_link_scrapper(channel_urls, wait_time_load=wait_time_load, wait_time_scroll=wait_time_scroll)
 
         all_public_links = []
         channel_url = []
@@ -87,6 +87,7 @@ class YTScrapperDF(YTDataScrapper):
         print("Finished Unpacking YT Metadata!")
         return df_input
 
+
     #Scrapped Data Filterer using Title Pattern Key or Channel Name key
     def video_result_filterer(self, df_input: pd.DataFrame, channel_col_name:str, title_col_name:str, 
                                 whitelisted_channels=None, whitelisted_title=None, filter_conditional_and:bool=False):
@@ -115,7 +116,7 @@ class YTScrapperDF(YTDataScrapper):
         return df_input
 
 
-    def split_yt_subtitles(self, splitter: TextSplitter, colnames_to_gather_mapper: dict, df_path: str=os.getcwd(), **kwargs):
+    def split_yt_subtitles(self, splitter: TextSplitter, colnames_to_gather_mapper: dict=None, df_path: str=os.getcwd(), **kwargs):
         try:
             os.listdir(df_path)
         except NotADirectoryError:
@@ -126,14 +127,21 @@ class YTScrapperDF(YTDataScrapper):
         
         if len(csv_file_names_list) == 0: raise AssertionError("The csv file must exist!")
 
-        if len(colnames_to_gather_mapper)==0 or not isinstance(colnames_to_gather_mapper, dict):
-            raise ValueError("The colnames to gather must be a dict with non-zero length!")
+        if colnames_to_gather_mapper is None:
+            colnames_to_gather_mapper = {"csv_file_names_list" : 1,
+                "vid_id_list" : 2,
+                "sen_list": 3,
+                "start_list": 4,
+                "stop_list": 5}
+        else:
+            if len(colnames_to_gather_mapper)==0 or not isinstance(colnames_to_gather_mapper, dict):
+                raise ValueError("The colnames to gather must be a dict with non-zero length!")
 
-        if not all([isinstance(dict_val, int) and 1<=dict_val<=5 for dict_val in dict.values()]):
-            raise ValueError("The value of col-dict mapper must be an integer between 1 and 5")
+            if not all([isinstance(dict_val, int) and 1<=dict_val<=5 for dict_val in colnames_to_gather_mapper.values()]):
+                raise ValueError("The value of column to list index result mapper must be an integer between 1 and 5")
 
-        if len(set(colnames_to_gather_mapper.values())) != len(colnames_to_gather_mapper.values()):
-            raise AssertionError("The dict-values are non-unique!")
+            if len(set(colnames_to_gather_mapper.values())) != len(colnames_to_gather_mapper.values()):
+                raise AssertionError("The dict-values are non-unique!")
 
         sen_list, start_list, stop_list, vid_id_list = [], [], [], []
 
