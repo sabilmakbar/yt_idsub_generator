@@ -25,7 +25,7 @@ import numpy as np
 
 
 # A Python Selenium Scraper for Retrieve the List of Links from A Channel
-def channel_video_link_scrapper(channel_urls: list, wait_time_load: int=10, wait_time_scroll: int=5):
+def channel_video_link_scrapper(channel_urls: list, wait_time_load: int=10, wait_time_scroll: int=3):
     """Retrieving a list of all public videos in the given channel URL
     input:
         >> channel_urls (list of str) -- an url link of input channel to be scraped, has to be a "video" tab link
