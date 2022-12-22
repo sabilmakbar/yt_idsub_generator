@@ -89,7 +89,7 @@ def df_pickler(file_path: str, actions: str, df_input=None):
             pickle.dump(df_input, pickle_file)
         with open(txt_file_path, "w") as text_file:
             text_file.write(f"The pickle package version: {pickle.format_version}")
-            text_file.write("/n")
+            text_file.write("\n")
             text_file.write(f"The pandas package version: {pd.__version__}")
 
         return df_input
