@@ -14,9 +14,12 @@ except ImportError:
     from .utils.txt2int import text2int
 
 class TextSplitter():
-    def __init__(self, splitter: NNSplit, lang="en"):
+    def __init__(self, splitter: NNSplit=None, lang="en"):
+
+        if splitter is None:
+            splitter = NNSplit
+
         self.splitter = splitter.load(lang)
-        pass
 
     def text_preprocess(self, text_input: str):
         return re.sub(r"\s+", r" ", text_input).strip()
