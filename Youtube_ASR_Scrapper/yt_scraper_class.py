@@ -1,6 +1,3 @@
-from xml.dom import ValidationErr
-
-
 try:
     from utils.yt_scrapper_utils import *
     from utils.general_utils import *
@@ -43,12 +40,12 @@ class YTScrapperDF(YTDataScrapper):
 
 
     #DF Loader or Dumper with executor functions (must be passed using **kwargs)
-    def df_loader_or_dumper(self, path_dir: str, load_checkpoint: bool, method_to_execute=None, **kwargs):        
+    def df_loader_or_dumper(self, path_dir: str, load_checkpoint: bool, method_to_execute=None, **kwargs):
         actions = "load" if load_checkpoint else "dump"
         df_scrapper_result = None if method_to_execute is None or actions == "load" else method_to_execute(**kwargs)
 
         df_output = df_pickler(path_dir, actions, df_scrapper_result)
-        
+
         return df_output
 
 
@@ -75,12 +72,12 @@ class YTScrapperDF(YTDataScrapper):
             finishing_idx = min(batch_size*(idx+1),len(data_to_scrape_index))
             df_input.loc[data_to_scrape_index[starting_idx:finishing_idx], col_name_meta] = video_meta["data"]
             df_pickler(save_path, "dump", df_input)
-        
+
         print("Finished Scraping YT Metadata!")
 
-        df_input[["title","duration_s","upload_date"]] = df_input[[col_name_meta]].apply(lambda x: 
+        df_input[["title","duration_s","upload_date"]] = df_input[[col_name_meta]].apply(lambda x:
                                                         video_meta_retriever(x[col_name_meta]), axis=1, result_type="expand")
-        
+
         df_input.loc[df_input["title"].isnull(), col_name_meta] = None
         df_pickler(save_path, "dump", df_input)
 
@@ -89,50 +86,51 @@ class YTScrapperDF(YTDataScrapper):
 
 
     #Scrapped Data Filterer using Title Pattern Key or Channel Name key
-    def video_result_filterer(self, df_input: pd.DataFrame, channel_col_name:str, title_col_name:str, 
+    def video_result_filterer(self, df_input: pd.DataFrame, channel_col_name:str, title_col_name:str,
                                 whitelisted_channels=None, whitelisted_title=None, filter_conditional_and:bool=False):
-        
+
         df = df_input.dropna()
 
         df_1 = df_filterer(df, channel_col_name, None, whitelisted_channels)
 
         if whitelisted_title is not None and not isinstance(whitelisted_title, str):
-            try: 
-                iter(whitelisted_title) 
-            except TypeError as e: 
+            try:
+                iter(whitelisted_title)
+            except TypeError as e:
                 pass
             else:
                 whitelisted_title = "|".join(whitelisted_title)
-        
+
         df_2 = df_filterer(df, title_col_name, "alphanum", whitelisted_title, alpha_lower=True)
 
         if filter_conditional_and:
             df_filtered_index = df_1.index.intersection(df_2.index)
         else:
             df_filtered_index = df_1.index.union(df_2.index)
-        
+
         df_input = df_input.loc[df_filtered_index, :].reset_index(drop=True)
 
         return df_input
 
 
-    def split_yt_subtitles(self, splitter: TextSplitter, colnames_to_gather_mapper: dict=None, df_path: str=os.getcwd(), **kwargs):
+    def scrapper_split_yt_subtitles(self, splitter: TextSplitter, colnames_to_gather_mapper: dict=None, df_path: str=os.getcwd(), **kwargs):
         try:
             os.listdir(df_path)
         except NotADirectoryError:
-            if os.fsdecode(df_path).endswith('.csv'): 
+            if os.fsdecode(df_path).endswith('.csv'):
                 csv_file_names_list = [os.fsdecode(df_path)]
         else:
-            csv_file_names_list = [os.fsdecode(file) for file in os.listdir(df_path) if os.fsdecode(file).endswith('.csv')]
-        
+            csv_file_names_list = [os.path.join(df_path, os.fsdecode(file)) for file in os.listdir(df_path) if os.fsdecode(file).endswith('.csv')]
+
         if len(csv_file_names_list) == 0: raise AssertionError("The csv file must exist!")
 
         if colnames_to_gather_mapper is None:
-            colnames_to_gather_mapper = {"csv_file_names_list" : 1,
-                "vid_id_list" : 2,
+            colnames_to_gather_mapper = {"vid_id" : 1,
+                "yt_link" : 2,
                 "sen_list": 3,
                 "start_list": 4,
                 "stop_list": 5}
+
         else:
             if len(colnames_to_gather_mapper)==0 or not isinstance(colnames_to_gather_mapper, dict):
                 raise ValueError("The colnames to gather must be a dict with non-zero length!")
@@ -146,24 +144,23 @@ class YTScrapperDF(YTDataScrapper):
         sen_list, start_list, stop_list, vid_id_list = [], [], [], []
 
         for idx, file_name in enumerate(csv_file_names_list, start=1):
-            print("Processing file: {} out of {}".format(idx, len(file_name)))
-            
-            df = pd.read_csv(os.path.join(csv_file_names_list,file_name))
+            print("Processing file: {} out of {}".format(idx, len(csv_file_names_list)))
 
-            if not all([col_name in df.columns for col_name in colnames_to_gather_mapper.keys()]):
-                raise KeyError("Not all requested columns presents on the DF!")
+            df = pd.read_csv(file_name)
 
             sen, start, stop = splitter.split_yt_subtitles(df, **kwargs)
-            
+
             sen_list.append(sen)
             start_list.append(start)
             stop_list.append(stop)
-            vid_id_list.append(file_name[-18:-7])
-        
-        all_values_list = [csv_file_names_list, vid_id_list, sen_list, start_list, stop_list]
+            vid_id_list.append(file_name.split("/")[-1][:-4]) #remove extension of ".csv"
+
+
+        yt_link_list = ["https://www.youtube.com/watch?v="+vid_id for vid_id in vid_id_list]
+        all_values_list = [vid_id_list, yt_link_list, sen_list, start_list, stop_list]
 
         data_dict = dict()
-        for key, value in colnames_to_gather_mapper.items(): 
+        for key, value in colnames_to_gather_mapper.items():
             data_dict[key] = all_values_list[value-1]
-        
+
         return pd.DataFrame(data_dict)
