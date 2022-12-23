@@ -14,7 +14,7 @@ channel_links = [
     # "https://www.youtube.com/@detikcom/videos"
 ]
 
-is_finished = False
+is_finished = True
 foldername_res_video_urls_scrapper = str(Path(os.getcwd()).parents[0])
 filename_res_video_urls_scrapper = "Scraped Video Links from Channel (ID Version).pkl"
 
