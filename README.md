@@ -1,5 +1,5 @@
-# valuation_modelling
-The Project of Estimating Company Valuation in Early Stage
+# Youtube ASR Downloader (using Indonesian Auto-generated Subtitle)
+The Project of Extracting ASR Dataset for IndoNLP NusaCrowd (need some validations prior to submission)
 
 Python version used: 3.7.11
 
