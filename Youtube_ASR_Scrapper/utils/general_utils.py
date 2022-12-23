@@ -1,56 +1,93 @@
-import pandas as pd
 import re
-from datetime import datetime as dt
 import pickle
 
+import pandas as pd
+from datetime import datetime as dt
 
-def dt_str_stamp_lin(start, end, text:str or list, time_format = "%H:%M:%S"):
+
+def parse_prefix(string_dt: str, fmt: str):
     """
-    It takes a string of text, and a start and end time, and returns a list of tuples, where
-    each tuple contains the start and end time of each word in the text
+    It tries to parse the string to datetime,
+    and if it fails, it removes the last character based on error messagea & tries again
 
-    To attach string list to its adjacent timestamp
+    input:
+        >> string_dt (str) : the string to parse as datetime
+        >> fmt (str): The datetime format to be parsed of the string_dt
+    output: the parsed datetime object
+    """
+    try:
+        t = dt.strptime(string_dt, fmt)
+    except ValueError as v:
+        if len(v.args) > 0 and v.args[0].startswith('unconverted data remains: '):
+            string_dt = string_dt[:-(len(v.args[0]) - 26)]
+            t = dt.strptime(string_dt, fmt)
+        else:
+            raise
+    return t
 
-    :param str_pos: the position of the character in the string
+
+def dt_str_stamp_lin(start_ts: str or dt, end_ts: str or dt, text: str or list, time_format: str="%H:%M:%S"):
+    """
+    It takes a start and end timestamp, and a text, and returns a list of tuples of start and end time for
+    each partitions in the text
+    the partition is defined as follows:
+        if its "text" type a string, then a partition is a "word", or whitespace-splitted tokens
+        it its "text" type a list, then a partition means a element in that given list
+
+    input:
+        >> start_ts (str or datetime class): the start timestamp of the a given text
+        >> end (str or datetime class): the end timestamp of the a given text
+        >> text (str or list): the text to be partitioned its timestamp
+        >> time_format (str, optional): the format of the time string, defaults to %H:%M:%S
+    output: a tuple containing datetime partition stamp, its boundary character position detected, and the corresponding cleaned text
     """
 
     #automatically adds time_format with decimals
     if not time_format.endswith(r"%f"):
         time_format += ".%f"
 
-    #split by whitespace
+    #change start_ts and end_ts dtype to datetime format using parse_prefix (remove unconverted data at suffix)
+    if isinstance(start_ts, str):
+        start_ts = parse_prefix(start_ts, time_format)
+    if isinstance(end_ts, str):
+        end_ts = parse_prefix(end_ts, time_format)
+
+    #partition by word (whitespace splitted) from a given text
     if isinstance(text, str):
         #cleanse double white-space
         text = re.sub(r"\s+", r" ", text.strip())
-        word_pos = [(ele.start()+1, ele.end()+1) for ele in re.finditer(r'\S+', text)]
+        partition_boundary_char_pos = [(ele.start()+1, ele.end()+1) for ele in re.finditer(r'\S+', text)]
         text_len = len(text)
-    #split by list len
+
+    #partition by each element in a list
     else:
-        word_pos, sum_len = list(), 0
+        partition_boundary_char_pos, sum_len = list(), 0
         #example: ["saya", "makan", "nasi"]
-        #expected output: [1, 5], [7,]
+        #expected output positions: [1, 5], [6, 11], [12, 16]
         for text_partition in text:
             text_partition = re.sub(r"\s+", r" ", text_partition.strip())
-            if len(word_pos) == 0: #start of the list
+            if len(partition_boundary_char_pos) == 0: #start of the list
                 start_pos = 1
-                word_pos.append((start_pos, len(text_partition)+start_pos))
+                partition_boundary_char_pos.append((start_pos, len(text_partition)+start_pos))
             else:
                 skip_whitespace = 1
-                start_pos = word_pos[-1][1] + skip_whitespace
-                word_pos.append((start_pos, len(text_partition)+start_pos))
+                start_pos = partition_boundary_char_pos[-1][1] + skip_whitespace
+                partition_boundary_char_pos.append((start_pos, len(text_partition)+start_pos))
             sum_len += len(text_partition)
         text_len = (len(text)-1) + sum_len
 
-    word_dt_stamp = list()
+    #get timestamp of a char
+    def lin_char_pos_dt_stamp(char_pos):
+        # stamp = dt.strptime(start_ts, time_format) + (dt.strptime(end_ts, time_format) - dt.strptime(start_ts, time_format))*(char_pos-1)/text_len
+        stamp = start_ts + (end_ts - start_ts)*(char_pos-1)/text_len
+        return dt.strftime(stamp, time_format)
 
-    def lin_pos_dt_stamp(str_pos):
-        stamp = dt.strptime(start, time_format) + (dt.strptime(end, time_format) - dt.strptime(start, time_format))*(str_pos-1)/text_len
-        return dt.strftime(stamp, time_format+r".%f")
+    #get timestamp of boundary char associated with a sentence or token
+    partition_dt_stamp = list()
+    for start_word_pos, end_word_pos in partition_boundary_char_pos:
+        partition_dt_stamp.append((lin_char_pos_dt_stamp(start_word_pos), lin_char_pos_dt_stamp(end_word_pos)))
 
-    for start_word_pos, end_word_pos in word_pos:
-        word_dt_stamp.append((lin_pos_dt_stamp(start_word_pos), lin_pos_dt_stamp(end_word_pos)))
-
-    return word_dt_stamp, word_pos, text
+    return partition_dt_stamp, partition_boundary_char_pos, text
 
 
 def iter_to_df_creator(*args):
@@ -95,13 +132,19 @@ def df_pickler(file_path: str, actions: str, df_input=None):
         return df_input
 
     else:
+        #do sanity check on its expected vs installed version
         with open(txt_file_path, "r") as text_file:
-            expected_ver = text_file.read()
-        if expected_ver != pickle.format_version: 
-            raise AssertionError("Mismatch expected pickle version {} vs installed pickle version {}".format(expected_ver, pickle.format_version))
-        else:
-            with open(file_path, "rb") as pickle_file:
-                return pd.read_pickle(pickle_file)
+            for idx, line in enumerate(text_file.readlines()):
+                expected_pkg_ver = re.search("(?<=:).+", line).group(0).strip()
+                # expected first line: pickle package version
+                if idx == 0 and expected_pkg_ver != pickle.format_version:
+                    raise AssertionError("Mismatch expected pickle version {} vs installed pickle version {}".format(expected_pkg_ver, pickle.format_version))
+                if idx == 1 and expected_pkg_ver != pd.__version__:
+                    raise AssertionError("Mismatch expected pandas version {} vs installed pandas version {}".format(expected_pkg_ver, pd.__version__))
+
+        #if succeed the check, read the actual pickled pandas df file
+        with open(file_path, "rb") as pickle_file:
+            return pickle.load(pickle_file)
 
 
 def df_filterer(df_input: pd.DataFrame, col_name: str, src_regex_text_preproces: None or str, whitelisted_value=None, alpha_lower:bool=False, whitelist: bool=True, drop_temp_col: bool=False):
@@ -138,9 +181,9 @@ def df_filterer(df_input: pd.DataFrame, col_name: str, src_regex_text_preproces:
     elif src_regex_text_preproces == "alphanum":
         df_input[col_name_copy] = df_input[col_name_copy].str.replace(r"[^a-z0-9]", "", regex=True)
 
-    try: 
-        iterator = iter(whitelisted_value) 
-    except TypeError as e: 
+    try:
+        iterator = iter(whitelisted_value)
+    except TypeError as e:
         print(e)
 
     if isinstance(whitelisted_value, str):
