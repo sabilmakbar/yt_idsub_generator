@@ -2,13 +2,28 @@
 #then do ./python pip install
 
 import time, os, re
-
-from selenium import webdriver
 import subprocess
 
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
+import selenium
+from selenium import webdriver
+
+driver = "firefox"
+
+if driver not in ["firefox", "chrome"]:
+    raise ValueError(f"Wrong driver choice! Expected to receive 'firefox' or 'chrome', received {driver}")
+
+if driver == "chrome":
+    import webdriver_manager
+    from webdriver_manager.chrome import ChromeDriverManager
+    from selenium.webdriver.chrome.options import Options
+    from selenium.webdriver.chrome.service import Service
+elif driver == "firefox":
+    import webdriver_manager
+    from webdriver_manager.firefox import GeckoDriverManager
+    from selenium.webdriver.firefox.options import Options
+    from selenium.webdriver.firefox.service import Service
+
+
 from selenium.webdriver.common.by import By
 
 from requests_html import AsyncHTMLSession
@@ -23,6 +38,74 @@ import yt_dlp
 import webvtt
 import pandas as pd
 import numpy as np
+
+
+# A Selenium Spawner
+def spawn_driver():
+
+    # # do these lines if anything doesn't work
+
+    # try: #works only on linux, to install chromedriver
+    #     install google chrome and its chromedriver
+    #     proc_update = subprocess.Popen('sudo apt update')
+    #     proc_update.wait()
+    #     proc_install = subprocess.Popen('sudo apt install chromium-chromedriver', shell=True, stdin=None, stdout=open("/dev/null", "w"), stderr=None, executable="/bin/bash")
+    #     proc_install.wait()
+    #     proc_download_gchrome = subprocess.Popen('wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb')
+    #     proc_download_gchrome.wait()
+    #     proc_install_gchrome = subprocess.Popen('sudo apt install ./google-chrome-stable_current_amd64.deb')
+    #     proc_install_gchrome.wait()
+
+    #     install firefox (much lower RAM usage than chrome, thus less likely for browser to crashed)
+    #     proc_install_firefox = subprocess.Popen("wget https://ftp.mozilla.org/pub/firefox/releases/95.0.1/linux-x86_64/en-GB/firefox-95.0.1.tar.bz2")
+    #     proc_install_firefox.wait()
+    #     # FIREFOX_VERSION="95.0.1"
+    #     proc_execute_firefox = subprocess.Popen("tar xvf firefox-95.0.1.tar.bz2")
+
+    # except:
+    #     pass
+
+
+    browser_options = Options()
+    browser_options.add_argument("--headless")
+    browser_options.add_argument("--disable-dev-shm-usage")
+    browser_options.add_argument('--no-sandbox')
+    browser_options.add_argument('--disable-gpu')
+    # browser_options.add_argument('--incognito')
+    browser_options.binary_location = r"/home/jupyter/firefox/firefox"
+
+    # driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=browser_options)
+    driver = webdriver.Firefox(service=Service(GeckoDriverManager().install()), options=browser_options)
+
+    return driver
+
+
+def terminate_chrome_driver(driver: webdriver.Chrome or webdriver.Firefox, action: str="quit"):
+
+    if action not in ["quit", "close"]:
+        raise ValueError(f"Action chosen is not one of 'quit' or 'close'! Received value was {action}")
+
+    if action=="quit":
+        print("Closing All Browser...")
+        driver.quit()
+    else:
+        print("Closing One Browser...")
+        driver.close()
+
+
+def lazy_load_attribute_crawler(element_list: list, attribute_to_catch: str):
+    iterator = iter(element_list)
+
+    print("The total number of videos HTML element identified is: {}".format(len(element_list)))
+
+    while True:
+        try:
+            attr = (next(iterator)).get_attribute(attribute_to_catch)
+        except StopIteration:
+            break
+        else:
+            if attr is not None:
+                yield attr
 
 
 # A Python Selenium Scraper for Retrieve the List of Links from A Channel
@@ -45,34 +128,20 @@ def channel_video_link_scrapper(channel_urls: list, wait_time_load: int=10, wait
 
     video_list_output = []
 
-    try: #works only on linux, to install chromedriver
-        proc_update = subprocess.Popen('sudo apt update')
-        proc_update.wait()
-        proc_install = subprocess.Popen('sudo apt install chromium-chromedriver', shell=True, stdin=None, stdout=open("/dev/null", "w"), stderr=None, executable="/bin/bash")
-        proc_install.wait()
-        proc_download_gchrome = subprocess.Popen('wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb')
-        proc_download_gchrome.wait()
-        proc_install_gchrome = subprocess.Popen('sudo apt install ./google-chrome-stable_current_amd64.deb')
-        proc_install_gchrome.wait()
-    except:
-        pass
-
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument('--no-sandbox')
-
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
-
     for idx, channel_url in enumerate(channel_urls, start=1):
+
+        #initiate new browser everytime a new channel is created
+        driver = spawn_driver()
+
         channelid = channel_url.split('/')[-2]
 
-        print(f"Retrieving videos list from data number {idx} with channel_id {channelid}")
+        print(f"Retrieving videos list from data number {idx} with channel_id {channelid} from total channel of {len(channel_urls)}")
 
         driver.get(channel_url)
         time.sleep(wait_time_load)
         height = driver.execute_script("return document.documentElement.scrollHeight")
         lastheight = 0
+
 
         while True:
             if lastheight == height:
@@ -82,19 +151,19 @@ def channel_video_link_scrapper(channel_urls: list, wait_time_load: int=10, wait
             time.sleep(wait_time_scroll)
             height = driver.execute_script("return document.documentElement.scrollHeight")
 
+
         time.sleep(wait_time_load)
-        user_data = driver.find_elements(By.XPATH, '//*[@id="video-title-link"]')
 
-        print("The total number of videos HTML element identified from channel id {} is: {}".format(channelid, len(user_data)))
+        #create an iterator over web element list
+        video_channel_data = driver.find_elements(By.XPATH, '//*[@id="video-title-link"]')
 
-        video_list = [data.get_attribute("href") for data in user_data if data.get_attribute("href") is not None]
-
-        print("The total number of videos obtained from channel id {} is: {}".format(channelid, len(video_list)))
+        video_list = list(lazy_load_attribute_crawler(video_channel_data, attribute_to_catch="href"))
+        print("The total number of videos obtained is: {}".format(len(video_list)))
 
         video_list_output.append({"channel_url":channel_url, "public_video_list": video_list})
 
-    #close the window
-    driver.quit()
+        #close the window everytime a link scraping is finished from a channel URL
+        terminate_chrome_driver(driver)
 
     return {"data": video_list_output}
 
