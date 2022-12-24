@@ -9,6 +9,7 @@ import subprocess
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 
 from requests_html import AsyncHTMLSession
@@ -63,6 +64,7 @@ def channel_video_link_scrapper(channel_urls: list, wait_time_load: int=10, wait
     chrome_options.add_argument('--no-sandbox')
 
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
 
     for idx, channel_url in enumerate(channel_urls, start=1):
         channelid = channel_url.split('/')[-2]
@@ -93,8 +95,7 @@ def channel_video_link_scrapper(channel_urls: list, wait_time_load: int=10, wait
 
         video_list_output.append({"channel_url":channel_url, "public_video_list": video_list})
 
-    #close the window
-    driver.quit()
+        driver.close()
 
     return {"data": video_list_output}
 
