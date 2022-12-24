@@ -15,7 +15,8 @@ channel_links = [
 ]
 
 is_finished = False
-foldername_res_video_urls_scrapper = str(Path(os.getcwd()).parents[0])
+# foldername_res_video_urls_scrapper = str(os.getcwd().parents[0])
+foldername_res_video_urls_scrapper = os.getcwd()
 filename_res_video_urls_scrapper = "Scraped Video Links from Channel (ID Version).pkl"
 
 save_path_res_video_urls_scrapper = os.path.join(foldername_res_video_urls_scrapper, 
