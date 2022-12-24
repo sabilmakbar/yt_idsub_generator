@@ -16,7 +16,7 @@ yt_dlp_options = None
 save_path_res_video_urls_scrapper = os.path.join(foldername_res_video_urls_scrapper, 
                                                  child_folder_name)
 
-final_csv_name = "cleaned_data_subtitle_yt.csv"
+final_csv_pickle_name = "cleaned_data_subtitle_yt.pkl"
 
 subtitle_scrapper_params = {
     "checkpoint_bool_downloading": is_finished_downloading,
@@ -25,5 +25,5 @@ subtitle_scrapper_params = {
     "yt_dlp_options": yt_dlp_options,
 
     "checkpoint_bool_processing": is_finished_processing,
-    "save_final_path": os.path.join(foldername_res_video_urls_scrapper, final_csv_name)
+    "save_final_path": os.path.join(foldername_res_video_urls_scrapper, final_csv_pickle_name)
 }
