@@ -8,6 +8,7 @@ import subprocess
 
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 
 from requests_html import AsyncHTMLSession
@@ -35,12 +36,6 @@ def channel_video_link_scrapper(channel_urls: list, wait_time_load: int=10, wait
     Reference: https://github.com/banhao/scrape-youtube-channel-videos-url/blob/master/scrape-youtube-channel-videos-url.py
     """
 
-    try: #works only on linux, to install chromedriver
-        proc = subprocess.Popen('apt install chromium-chromedriver', shell=True, stdin=None, stdout=open("/dev/null", "w"), stderr=None, executable="/bin/bash")
-        proc.wait()
-    except:
-        pass
-
     #Assert all inputs are youtube link
     for url in channel_urls:
         if "youtube.com" not in url:
@@ -50,12 +45,24 @@ def channel_video_link_scrapper(channel_urls: list, wait_time_load: int=10, wait
 
     video_list_output = []
 
+    try: #works only on linux, to install chromedriver
+        proc_update = subprocess.Popen('sudo apt update')
+        proc_update.wait()
+        proc_install = subprocess.Popen('sudo apt install chromium-chromedriver', shell=True, stdin=None, stdout=open("/dev/null", "w"), stderr=None, executable="/bin/bash")
+        proc_install.wait()
+        proc_download_gchrome = subprocess.Popen('wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb')
+        proc_download_gchrome.wait()
+        proc_install_gchrome = subprocess.Popen('sudo apt install ./google-chrome-stable_current_amd64.deb')
+        proc_install_gchrome.wait()
+    except:
+        pass
+
     chrome_options = Options()
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument('--no-sandbox')
 
-    driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
 
     for idx, channel_url in enumerate(channel_urls, start=1):
         channelid = channel_url.split('/')[-2]
