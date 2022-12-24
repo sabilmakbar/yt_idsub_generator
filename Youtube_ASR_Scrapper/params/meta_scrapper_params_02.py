@@ -8,7 +8,7 @@ whitelisted_channels_scrapped = None
 whitelisted_title_phrases = None
 
 #save it as pickle
-is_finished = True
+is_finished = False
 foldername_res_video_meta_scrapper = str(Path(os.getcwd()).parents[0])
 filename_res_video_meta_scrapper = "Scraped Video Meta from Channel (ID version).pkl"
 
