@@ -34,6 +34,9 @@ if __name__ == "__main__":
     load_checkpoint_file = link_scrapper_params["checkpoint_bool"]
     save_path_links = link_scrapper_params["save_load_path"]
 
+    print(f"Starting process to scrape YT video links from channel videos link")
+    print(f"Will save the result in {save_path_links}")
+
     output_links_from_channel = scrapper_df.df_loader_or_dumper(save_path_links, load_checkpoint_file, scrapper_df.df_channel_video_link_scrapper, video_urls = link_scrapper_params["channel_url_list"])
 
     #scrape YT metadata from links
@@ -45,6 +48,9 @@ if __name__ == "__main__":
     load_checkpoint_file = meta_scrapper_params["checkpoint_bool"]
     save_path_with_meta = meta_scrapper_params["save_load_path"]
 
+    print(f"Starting process to scrape YT metadata from its video links")
+    print(f"Will save the result in {save_path_with_meta}")
+
     output_meta_from_links_filtered = scrapper_df.df_loader_or_dumper(save_path_with_meta, load_checkpoint_file, scrapper_df.video_result_filterer, df_input=output_meta_from_links,
                                                   channel_col_name="channel_url", title_col_name="title", whitelisted_channels=channel_whitelist, whitelisted_title=video_title_keyword)
 
@@ -55,6 +61,9 @@ if __name__ == "__main__":
 
     yt_dlp_options = subtitle_scrapper_params["yt_dlp_options"]
 
+    print(f"Starting process to scrape YT subtitles from its video links")
+    print(f"Will save the result in folder {download_folder_path}")
+
     if do_scrape:
         scrapper_general.yt_subtitle_downloader(download_lists, download_folder_path, yt_dlp_options)
         if len(os.listdir(download_folder_path)) != len(download_lists):
@@ -63,5 +72,8 @@ if __name__ == "__main__":
     #process its subtitle data into final dataset
     do_data_process = subtitle_scrapper_params["checkpoint_bool_processing"]
     save_final_path = subtitle_scrapper_params["save_final_path"]
+
+    print(f"Starting process to tidying up YT subtitle data into DataFrame structure with its timestamp")
+    print(f"Will save the result in {save_final_path}")
 
     output = scrapper_df.df_loader_or_dumper(save_final_path, do_data_process, scrapper_df.scrapper_split_yt_subtitles, splitter=splitter_class_nn, df_path=download_folder_path, subtitle_col_name="text", start_stamp_col_name="start", stop_stamp_col_name="stop")
