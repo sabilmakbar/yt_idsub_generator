@@ -2,6 +2,8 @@
 #then do ./python pip install
 
 import time, os, re
+import traceback
+
 import subprocess
 
 import selenium
@@ -193,10 +195,13 @@ async def async_yt_metadata_scrapper(*args, shorts_identifier = "/shorts/"):
         response = await session.get(video_url)
     except TimeoutError as Te:
         print(Te[:-1]+", need to increase default timeout or retry again")
-        return None
-    except Exception as e:
-        print(e)
-        return None
+        await session.close()
+        raise
+    except:
+        print("An error occurred when trying to get URL response!")
+        print(''.join(traceback.format_stack()))
+        await session.close()
+        raise
 
     # execute Java-script
     try:
@@ -204,11 +209,12 @@ async def async_yt_metadata_scrapper(*args, shorts_identifier = "/shorts/"):
     except TimeoutError as Te:
         print(Te[:-1]+", need to increase default timeout or retry again")
         await session.close()
-        return None
-    except Exception as e:
-        print(e)
+        raise
+    except:
+        print("An error occurred when trying to render HTML!")
+        print(''.join(traceback.format_stack()))
         await session.close()
-        return None
+        raise
 
     # create bs object to parse HTML
     soup = bs(response.html.raw_html, "html.parser")
@@ -217,33 +223,25 @@ async def async_yt_metadata_scrapper(*args, shorts_identifier = "/shorts/"):
         upload_date = soup.find("meta", itemprop="uploadDate")['content']
         duration = soup.find("span", {"class": "ytp-time-duration"}).text
         vid_title = soup.find("meta", itemprop="name")["content"]
-        print("Informations available!.")
-
-        print(f"Upload date: {upload_date}")
-        print(f"Video duration: {duration}")
-        print(f"Video name: {vid_title}")
-
     except (TypeError, AttributeError) as e:
-        print("Informations unavailable!")
-        return None
+        print(f"Informations unavailable when doing BS find! Message: {e}")
+        raise
+    except:
+        print(f"An error occurred when parsing the BS!")
+        print(''.join(traceback.format_stack()))
+        raise
+    finally:
+        await session.close()
 
-    if not re.match("^\d{1,2}(:\d{2}){,2}$", duration):
-        print("Warning, the duration info is invalid or > 1day. Returning duration_s variable as None!")
+    if not re.match("^\d{1,}(:\d{2}){,2}(:\d{2})$", duration):
+        print(f"The duration info pattern is unexpected! Received str: {duration}")
         duration_s = None
     else:
-        duration_splitted = duration.split(":")
-        duration_s = int(duration_splitted[-1])
-        try:
-            duration_s += int(duration_splitted[-2])*60
-        except:
-            pass
-        else:
-            try:
-                duration_s += int(duration_splitted[-3])*3600
-            except:
-                pass
+        ts_measured = [86400,3600,60,1]
+        duration_reversed = list(map(int,duration.split(":")[::-1]))
+        ts_reversed_used = ts_measured[::-1][:len(duration_reversed)]
+        duration_s = sum([a*b for a,b in zip(ts_reversed_used, duration_reversed)])
 
-    await session.close()
 
     # get the metadata dict
     output_dict = {"title": vid_title,
@@ -254,11 +252,6 @@ async def async_yt_metadata_scrapper(*args, shorts_identifier = "/shorts/"):
     return output_dict
 
 
-async def async_yt_list_metadata_scrapper(*args):
-    video_urls, timeout = args
-    return await asyncio.gather(*[async_yt_metadata_scrapper(video_url, timeout) for video_url in video_urls])
-
-
 def yt_metadata_scrapper(video_urls: list, timeout: int = 60):
     """Retrieving a dict of metadata from YT URL input using asyncronous method
     input:
@@ -267,15 +260,13 @@ def yt_metadata_scrapper(video_urls: list, timeout: int = 60):
     output: output_dict (dict) -- a dict of metadata, which can be found on function "async_yt_metadata_scrapper"
     """
 
-    if asyncio.get_event_loop().is_running(): # Only patch if needed (i.e. running in Notebook, Spyder, etc)
-        nest_asyncio.apply()
-
     result_list = []
     for video_url in video_urls:
         output = asyncio.run(async_yt_metadata_scrapper(video_url, timeout))
         try:
             output.keys()
-        except AttributeError as e: #the result is None
+        except:
+            print(f"Exception occured in 'async_yt_metadata_scrapper' function! Skipping the value for now...")
             result_list.append(None)
         else:
             result_list.append({"video_url": video_url, "meta": output})
