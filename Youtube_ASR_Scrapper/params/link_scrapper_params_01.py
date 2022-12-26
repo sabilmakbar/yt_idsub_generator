@@ -7,14 +7,14 @@ channel_links = [
     "https://www.youtube.com/@tvOneNews/videos",
     "https://www.youtube.com/@CNNindonesiaOfficial/videos",
     "https://www.youtube.com/@tribuntimur/videos",
-    "https://www.youtube.com/@MetrotvnewsOfficial/videos",
+    "https://www.youtube.com/@metrotvnews/videos",
     "https://www.youtube.com/@VideoOnthespotChannel/videos",
     "https://www.youtube.com/@CNBC_ID/videos",
     "https://www.youtube.com/@kumparan/videos",
     "https://www.youtube.com/@detikcom/videos"
 ]
 
-is_finished = False
+is_finished = True
 # foldername_res_video_urls_scrapper = str(os.getcwd().parents[0])
 foldername_res_video_urls_scrapper = os.getcwd()
 filename_res_video_urls_scrapper = "Scraped Video Links from Channel (ID Version).pkl"
