@@ -1,5 +1,4 @@
 if __name__ == "__main__":
-
     #Package Import
     import os
     import pickle
@@ -39,16 +38,20 @@ if __name__ == "__main__":
 
     output_links_from_channel = scrapper_df.df_loader_or_dumper(save_path_links, load_checkpoint_file, scrapper_df.df_channel_video_link_scrapper, video_urls = link_scrapper_params["channel_url_list"])
 
-    #scrape YT metadata from links
-    output_meta_from_links = scrapper_df.pd_yt_metadata_scrapper(output_links_from_channel, "video_meta", save_path_links, meta_scrapper_params["batch_size"])
-
-    #filter YT links from blacklist/whitelist params to be downloaded its subtitle later
+    #params for YT metadata scrapper and filter YT links from blacklist/whitelist params to be downloaded its subtitle later
     channel_whitelist = meta_scrapper_params["whitelisted_channels"]
     video_title_keyword = meta_scrapper_params["whitelisted_titles_phrase"]
     load_checkpoint_file = meta_scrapper_params["checkpoint_bool"]
     save_path_with_meta = meta_scrapper_params["save_load_path"]
 
+    #scrape YT metadata from links
     print(f"Starting process to scrape YT metadata from its video links")
+    print(f"Will save the result in {save_path_links}")
+
+    if not load_checkpoint_file:
+        output_meta_from_links = scrapper_df.pd_yt_metadata_scrapper(output_links_from_channel, "video_meta", save_path_links, meta_scrapper_params["batch_size"])
+
+    print(f"Starting process to filter YT list using its metdata")
     print(f"Will save the result in {save_path_with_meta}")
 
     output_meta_from_links_filtered = scrapper_df.df_loader_or_dumper(save_path_with_meta, load_checkpoint_file, scrapper_df.video_result_filterer, df_input=output_meta_from_links,
