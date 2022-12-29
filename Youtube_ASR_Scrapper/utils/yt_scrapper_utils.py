@@ -5,6 +5,7 @@ import time, os, re
 import traceback
 
 import subprocess
+import threading
 
 import selenium
 from selenium import webdriver
@@ -34,7 +35,6 @@ from requests_html import AsyncHTMLSession
 from bs4 import BeautifulSoup as bs #importing BeautifulSoup
 
 import asyncio
-import nest_asyncio
 
 import yt_dlp
 
@@ -45,7 +45,7 @@ import numpy as np
 
 
 # A Selenium Spawner
-def spawn_driver():
+def _spawn_driver():
 
     # # do these lines if anything doesn't work
 
@@ -84,7 +84,7 @@ def spawn_driver():
     return driver
 
 
-def terminate_chrome_driver(driver: webdriver.Chrome or webdriver.Firefox, action: str="quit"):
+def _terminate_chrome_driver(driver: webdriver.Chrome or webdriver.Firefox, action: str="quit"):
 
     if action not in ["quit", "close"]:
         raise ValueError(f"Action chosen is not one of 'quit' or 'close'! Received value was {action}")
@@ -97,7 +97,7 @@ def terminate_chrome_driver(driver: webdriver.Chrome or webdriver.Firefox, actio
         driver.close()
 
 
-def lazy_load_attribute_crawler(element_list: list, attribute_to_catch: str):
+def _lazy_load_attribute_crawler(element_list: list, attribute_to_catch: str):
     iterator = iter(element_list)
 
     print("The total number of videos HTML element identified is: {}".format(len(element_list)))
@@ -135,7 +135,7 @@ def channel_video_link_scrapper(channel_urls: list, wait_time_load: int=10, wait
     for idx, channel_url in enumerate(channel_urls, start=1):
 
         #initiate new browser everytime a new channel is created
-        driver = spawn_driver()
+        driver = _spawn_driver()
 
         channelid = channel_url.split('/')[-2]
 
@@ -161,20 +161,19 @@ def channel_video_link_scrapper(channel_urls: list, wait_time_load: int=10, wait
         #create an iterator over web element list
         video_channel_data = driver.find_elements(By.XPATH, '//*[@id="video-title-link"]')
 
-        video_list = list(lazy_load_attribute_crawler(video_channel_data, attribute_to_catch="href"))
+        video_list = list(_lazy_load_attribute_crawler(video_channel_data, attribute_to_catch="href"))
         print("The total number of videos obtained is: {}".format(len(video_list)))
 
         video_list_output.append({"channel_url":channel_url, "public_video_list": video_list})
 
         #close the window everytime a link scraping is finished from a channel URL
-        terminate_chrome_driver(driver)
+        _terminate_chrome_driver(driver)
 
     return {"data": video_list_output}
 
 
 # A Python Metadata Collection for Retrieve the Video Duration
-async def get_html_yt_metadata(*args, shorts_identifier = "/shorts/", sleep_timer: int=0.7):
-# def get_html_yt_metadata(*args, shorts_identifier = "/shorts/", sleep_timer: int=0.7):
+def _get_html_yt_metadata(*args, shorts_identifier = "/shorts/", sleep_timer: int=0.7):
     """Async Method for Retrieving metadata of given public videos.
     Has to be called within function "yt_metadata_scrapper" to make the output works
     as intended.
@@ -192,40 +191,38 @@ async def get_html_yt_metadata(*args, shorts_identifier = "/shorts/", sleep_time
     print("Executing YT Metadata Scraper for link {}.".format(video_url))
 
     # init an HTML Session
-    # with HTMLSession() as session:
-    with AsyncHTMLSession() as asession:
+    with HTMLSession() as session:
         # get the html content
         try:
-            response = await asession.get(video_url)
-            # response = session.get(video_url)
+            response = session.get(video_url)
         except TimeoutError as Te:
             print(Te[:-1]+", need to increase default timeout or retry again.")
-            raise
-        except:
+            session.close()
+            return None
+        except Exception as e:
             print("An error occurred when trying to get URL response!")
             print(''.join(traceback.format_stack()))
-            await asession.close()
-            raise
+            session.close()
+            return None
         else:
-            # execute Java-script
+            # execute HTML render
             try:
-                await response.html.arender(sleep=sleep_timer, timeout = timeout)
-                # response.html.render(sleep=sleep_timer, timeout = timeout)
+                response.html.render(sleep=sleep_timer, timeout = timeout)
             except TimeoutError as Te:
                 print(Te[:-1]+", need to increase default timeout or retry again")
-                await asession.close()
-                raise
-            except:
+                session.close()
+                return None
+            except Exception as e:
                 print("An error occurred when trying to render HTML!")
                 print(''.join(traceback.format_stack()))
-                await asession.close()
-                raise
+                session.close()
+                return None
             else:
-                await asession.close()
+                session.close()
                 return response.html.raw_html
 
 
-def parse_html_using_bs(html_raw):
+def _parse_html_using_bs(html_raw):
     # create bs object to parse HTML
     soup = bs(html_raw, "html.parser")
 
@@ -235,11 +232,11 @@ def parse_html_using_bs(html_raw):
         vid_title = soup.find("meta", itemprop="name")["content"]
     except (TypeError, AttributeError) as e:
         print(f"Informations unavailable when doing BS find! Message: {e}")
-        raise
+        return None
     except:
         print(f"An error occurred when parsing the BS!")
         print(''.join(traceback.format_stack()))
-        raise
+        return None
 
     if not re.match("^\d{1,}(:\d{2}){,2}(:\d{2})$", duration):
         print(f"The duration info pattern is unexpected! Received str: {duration}")
@@ -260,11 +257,9 @@ def parse_html_using_bs(html_raw):
     return output_dict
 
 
-async def singular_yt_metadata_scrapper(*args):
-# def singular_yt_metadata_scrapper(*args):
-    html = await get_html_yt_metadata(*args)
-    # html = get_html_yt_metadata(*args)
-    output_dict = parse_html_using_bs(html)
+def _singular_yt_metadata_scrapper(*args):
+    html = _get_html_yt_metadata(*args)
+    output_dict = _parse_html_using_bs(html)
     return output_dict
 
 
@@ -278,12 +273,11 @@ def yt_metadata_scrapper(video_urls: list, timeout: int = 60):
 
     result_list = []
     for video_url in video_urls:
-        output = asyncio.run(singular_yt_metadata_scrapper(video_url, timeout))
-        # output = singular_yt_metadata_scrapper(video_url, timeout)
+        output = _singular_yt_metadata_scrapper(video_url, timeout)
         try:
             output.keys()
         except AttributeError as ae:
-            print(f"Exception occured in 'async_yt_metadata_scrapper' function leading to no .keys() in function output! Skipping the value for now...")
+            print(f"Exception occured in '_get_html_yt_metadata' function leading to no .keys() in function output! Skipping the value for now...")
             print(f"Attribute error message: {ae}")
             result_list.append(None)
         except:
