@@ -174,10 +174,11 @@ class TextSplitter():
             else: #end of row, set seconds_diff manually to thres_s+1 (to enter the case of adding sentence and ts data)
                 no_voice_seconds_diff = None
 
-            text_appended = text_appended + " " + curr_idx_data[subtitle_col_name]
+            text_appended = (text_appended + " " + curr_idx_data[subtitle_col_name]).strip()
             sentences = self.split_sentence(text_appended)
 
             stop_ts = curr_idx_data[stop_stamp_col_name]
+            sentence_speech_duration = (pd.to_datetime(stop_ts)-pd.to_datetime(start_ts)).total_seconds()
 
             if no_voice_seconds_diff is None or no_voice_seconds_diff > thres_no_voice_s or sentence_speech_duration > thres_speech_duration or len(sentences)>1:
                 ts_start_list, ts_stop_list = self.sentence_time_stamp(start_ts, stop_ts, text_appended, split_result=True)
@@ -190,13 +191,16 @@ class TextSplitter():
                 if len(sentences)>1:
                     start_ts = ts_start_list[-1]
                     text_appended = sentences[-1]
+                else: #taking next row as new start timestamp and None as text_appended
+                    start_ts = next_idx_data[start_stamp_col_name]
+                    text_appended = ""
 
             #adding last row to sentence and timestamp
             if (idx+1 == df_input.shape[0]): #last data, input last sentence and timestamp (no more concatenation)
                 ts_start_list, ts_stop_list = self.sentence_time_stamp(start_ts, stop_ts, text_appended, split_result=True)
 
-                text_output_list.extend([self.post_process_text_to_int_sentence(sentences[-1])])
-                ts_start_output_list.extend([ts_start_list[-1]])
-                ts_stop_output_list.extend([ts_stop_list[-1]])
+                text_output_list.append(self.post_process_text_to_int_sentence(sentences[-1]))
+                ts_start_output_list.append(ts_start_list[-1])
+                ts_stop_output_list.append(ts_stop_list[-1])
 
         return text_output_list, ts_start_output_list, ts_stop_output_list
