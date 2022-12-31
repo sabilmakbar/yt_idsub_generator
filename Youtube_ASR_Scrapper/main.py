@@ -34,7 +34,7 @@ if __name__ == "__main__":
     save_path_links = link_scrapper_params["save_load_path"]
 
     print(f"Starting process to scrape YT video links from channel videos link")
-    print(f"Will save the result in {save_path_links}")
+    print(f"Will save/load the result in {save_path_links}")
 
     output_links_from_channel = scrapper_df.df_loader_or_dumper(save_path_links, load_checkpoint_file, scrapper_df.df_channel_video_link_scrapper, video_urls = link_scrapper_params["channel_url_list"])
 
@@ -46,16 +46,18 @@ if __name__ == "__main__":
 
     #scrape YT metadata from links
     print(f"Starting process to scrape YT metadata from its video links")
-    print(f"Will save the result in {save_path_links}")
+    print(f"Will save/load the result in {save_path_links}")
 
     if not load_checkpoint_file:
         output_meta_from_links = scrapper_df.pd_yt_metadata_scrapper(output_links_from_channel, "video_meta", save_path_links, meta_scrapper_params["batch_size"])
 
-    print(f"Starting process to filter YT list using its metdata")
-    print(f"Will save the result in {save_path_with_meta}")
-
-    output_meta_from_links_filtered = scrapper_df.df_loader_or_dumper(save_path_with_meta, load_checkpoint_file, scrapper_df.video_result_filterer, df_input=output_meta_from_links,
+        print(f"Starting process to filter YT list using its metdata")
+        print(f"Will save/load the result in {save_path_with_meta}")
+        output_meta_from_links_filtered = scrapper_df.df_loader_or_dumper(save_path_with_meta, load_checkpoint_file, scrapper_df.video_result_filterer, df_input=output_meta_from_links,
                                                   channel_col_name="channel_url", title_col_name="title", whitelisted_channels=channel_whitelist, whitelisted_title=video_title_keyword)
+    else:
+        output_meta_from_links_filtered = scrapper_df.df_loader_or_dumper(save_path_with_meta, load_checkpoint_file, None, df_input=None,
+                                                  channel_col_name="channel_url", title_col_name="title", whitelisted_channels=channel_whitelist, whitelisted_title=video_title_keyword)    
 
     #scrape YT subtitles
     do_scrape = not(subtitle_scrapper_params["checkpoint_bool_downloading"])
@@ -65,9 +67,10 @@ if __name__ == "__main__":
     yt_dlp_options = subtitle_scrapper_params["yt_dlp_options"]
 
     print(f"Starting process to scrape YT subtitles from its video links")
-    print(f"Will save the result in folder {download_folder_path}")
+    print(f"Will save/load the result in folder {download_folder_path}")
 
     if do_scrape:
+        # if this message appears: "Unable to download webpage: HTTP Error 429: Too Many Requests", do nothing since it still downloads the subtitle as usual
         scrapper_general.yt_subtitle_downloader(download_lists, download_folder_path, yt_dlp_options)
         if len(os.listdir(download_folder_path)) != len(download_lists):
             raise AssertionError("The length of the downloaded subtitle doesn't match with its expected!")
