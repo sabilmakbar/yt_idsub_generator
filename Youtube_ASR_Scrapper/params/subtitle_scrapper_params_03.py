@@ -6,7 +6,8 @@ from pathlib import Path
 is_finished_downloading = False
 is_finished_processing = False
 
-foldername_res_video_urls_scrapper = str(Path(os.getcwd()).parents[0])
+# foldername_res_video_urls_scrapper = str(Path(os.getcwd()).parents[0])
+foldername_res_video_urls_scrapper = os.getcwd()
 child_folder_name = "yt_subtitle_data"
 
 df_links_col_name = "video_url"
