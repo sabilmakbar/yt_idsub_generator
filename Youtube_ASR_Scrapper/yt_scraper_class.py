@@ -38,7 +38,6 @@ class YTScrapperDF(YTDataScrapper):
     def __init__(self):
         super().__init__()
 
-
     #DF Loader or Dumper with executor functions (must be passed using **kwargs)
     def df_loader_or_dumper(self, path_dir: str, load_checkpoint: bool, method_to_execute=None, **kwargs):
         actions = "load" if load_checkpoint else "dump"
@@ -48,12 +47,10 @@ class YTScrapperDF(YTDataScrapper):
 
         return df_output
 
-
     # Pandas Output Version of Links Scrapper
     def df_channel_video_link_scrapper(self, video_urls: list):
         channel_url, all_public_links = self.channel_video_link_scrapper(video_urls)
         return iter_to_df_creator(("channel_url", "video_url"), channel_url, all_public_links)
-
 
     # Pandas Input Version of Metadata Scrapper (with batch-processing and saving)
     def pd_yt_metadata_scrapper(self, df_input: pd.DataFrame, col_name_meta: str, save_path: str, batch_size: int = 10):
@@ -84,7 +81,6 @@ class YTScrapperDF(YTDataScrapper):
         print("Finished Unpacking YT Metadata!")
         return df_input
 
-
     #Scrapped Data Filterer using Title Pattern Key or Channel Name key
     def video_result_filterer(self, df_input: pd.DataFrame, channel_col_name:str, title_col_name:str,
                                 whitelisted_channels=None, whitelisted_title=None, filter_conditional_and:bool=False):
@@ -112,8 +108,8 @@ class YTScrapperDF(YTDataScrapper):
 
         return df_input
 
-
-    def scrapper_split_yt_subtitles(self, splitter: TextSplitter, colnames_to_gather_mapper: dict=None, df_path: str=os.getcwd(), **kwargs):
+    #Data Splitter from CSV into single row of data output
+    def scrapper_split_yt_subtitles(self, splitter: TextSplitter, colnames_to_gather_mapper: dict=None, df_path: str=os.getcwd(), limit: int=None, **kwargs):
         try:
             os.listdir(df_path)
         except NotADirectoryError:
@@ -122,7 +118,12 @@ class YTScrapperDF(YTDataScrapper):
         else:
             csv_file_names_list = [os.path.join(df_path, os.fsdecode(file)) for file in os.listdir(df_path) if os.fsdecode(file).endswith('.csv')]
 
-        if len(csv_file_names_list) == 0: raise AssertionError("The csv file must exist!")
+        if len(csv_file_names_list) == 0:
+            raise AssertionError("The csv file must exist!")
+
+        if limit is not None:
+            print(f"Limiting csv input to {limit}")
+            csv_file_names_list = csv_file_names_list[:limit]
 
         if colnames_to_gather_mapper is None:
             colnames_to_gather_mapper = {"vid_id" : 1,
@@ -144,7 +145,7 @@ class YTScrapperDF(YTDataScrapper):
         sen_list, start_list, stop_list, vid_id_list = [], [], [], []
 
         for idx, file_name in enumerate(csv_file_names_list, start=1):
-            print("Processing file: {} out of {}".format(idx, len(csv_file_names_list)))
+            print("Processing file: {} out of {} with filename {}".format(idx, len(csv_file_names_list), file_name.split("/")[-1]))
 
             df = pd.read_csv(file_name)
 
