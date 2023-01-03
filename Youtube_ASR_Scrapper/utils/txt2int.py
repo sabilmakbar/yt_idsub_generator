@@ -1,15 +1,18 @@
 def is_number(x):
-    # if type(x) == str: #changed to this
     if isinstance(x, str):
         x = x.replace(',', '')
+    # invalid_number = ['nan', 'inf', '-nan', '-inf']
     try:
         float(x)
     except:
         return False
-    return True
+    else:
+        # if x.lower() in invalid_number:
+            # return False
+        return True
 
 
-def text2int(textnum, numwords={}):
+def text2int(textnum, thousand_sep:str=".", decimal_sep:str=",", numwords:dict={}):
     units = [
         '0', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight',
         'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen',
@@ -17,9 +20,10 @@ def text2int(textnum, numwords={}):
     ]
     tens = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety']
     scales = ['hundred', 'thousand', 'million', 'billion', 'trillion']
-    ordinal_words = {'first':1, 'second':2, 'third':3, 'fifth':5, 'eighth':8, 'ninth':9, 'twelfth':12}
-    ordinal_endings = [('ieth', 'y'), ('th', '')]
+    # ordinal_words = {'first':1, 'second':2, 'third':3, 'fifth':5, 'eighth':8, 'ninth':9, 'twelfth':12}
+    # ordinal_endings = [('ieth', 'y'), ('th', '')]
 
+    #numwords is mapper of tuples with scale and increment
     if not numwords:
         numwords['and'] = (1, 0)
         for idx, word in enumerate(units): numwords[word] = (1, idx)
@@ -34,22 +38,24 @@ def text2int(textnum, numwords={}):
     lastunit = False
     lastscale = False
 
+
     def is_numword(x):
         if is_number(x):
             return True
-        if word in numwords:
+        if word in numwords.keys():
             return True
         return False
 
     def from_numword(x):
         if is_number(x):
             scale = 0
-            if '.' in x:
-              increment = float(x.replace(',', ''))
+            if decimal_sep in x:
+              increment = float(x.replace(thousand_sep, ''))
             else: 
-              increment = int(x.replace(',', '')) 
+              increment = int(x.replace(thousand_sep, ''))
             return scale, increment
-        return numwords[x]
+        else:
+            return numwords[x]
 
     for word in textnum.split():
         # if word in ordinal_words:
@@ -67,7 +73,7 @@ def text2int(textnum, numwords={}):
         #             if not word.endswith('with'): #to escape with
         #               word = "%s%s" % (word[:-len(ending)], replacement)
 
-        if (not is_numword(word)) or (word == 'and' and not lastscale):
+        if (not is_numword(word)) or (word=="and" and not lastscale):
             if onnumber:
                 # Flush the current number we are building
                 curstring += repr(result + current) + " "
@@ -79,7 +85,6 @@ def text2int(textnum, numwords={}):
         else:
             scale, increment = from_numword(word)
             onnumber = True
-
 
             if lastunit and (word not in scales):                                                                                                                                                                                                                                         
                 # Assume this is part of a string of individual numbers to                                                                                                                                                                                                                
