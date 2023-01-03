@@ -502,6 +502,9 @@ async def _singular_yt_dlp_subtitle_downloader(*args):
 
     if not isinstance(url, str):
         raise ValueError(f"First arg is not a string-typed URL, received {url} with type {type(url)}")
+
+    print(f"Trying to download subtitle for video URL {url}")
+
     with yt_dlp.YoutubeDL(settings) as ydl:
         try:
             ydl.download([url])
@@ -509,13 +512,16 @@ async def _singular_yt_dlp_subtitle_downloader(*args):
             print(f"Exception occured when downloading due to 'DownloadError'! Skipping this link of {url} for now...")
             print(f"Details: \n{traceback.print_stack()}")
 
+            return url
+
 
 async def _yt_dlp_subtitle_downloader(*args):
 
     video_url_list, settings = args
 
-    await asyncio.gather(*[(_singular_yt_dlp_subtitle_downloader(video_url, settings)) for video_url in video_url_list], return_exceptions=True)
+    failed_urls = await asyncio.gather(*[(_singular_yt_dlp_subtitle_downloader(video_url, settings)) for video_url in video_url_list], return_exceptions=True)
 
+    return failed_urls
 
 def yt_subtitle_downloader(video_urls: list, folder_path_to_save: str = os.getcwd(), ydl_opts : dict=None, lang: str="id"):
     """
@@ -555,15 +561,19 @@ def yt_subtitle_downloader(video_urls: list, folder_path_to_save: str = os.getcw
 
     #skipping existing files
     youtube_prefix_link = "https://www.youtube.com/watch?v="
-    video_id_exists = set([file[:-7] for file in os.listdir(folder_path_to_save) if file.endswith(".vtt") or file.endswith(".csv")])
+    video_id_exists_vtt = set([file[:-7] for file in os.listdir(folder_path_to_save) if file.endswith(".vtt")])
+    video_id_exists_csv = set([file[:-4] for file in os.listdir(folder_path_to_save) if file.endswith(".csv")])
+    video_id_exists = video_id_exists_vtt.union(video_id_exists_csv)
     video_url_all = set([re.sub(re.escape(youtube_prefix_link),"",url) for url in video_urls])
 
     video_url_to_download = [youtube_prefix_link+id for id in video_url_all.difference(video_id_exists)]
 
     if len(video_url_to_download) <= len(video_url_all):
         print(f"The number of donwloadables is decreasing from {len(video_url_all)} to {len(video_url_to_download)}")
-    
-    run_async(_yt_dlp_subtitle_downloader, video_url_to_download, ydl_opts)
+
+    failed_urls = run_async(_yt_dlp_subtitle_downloader, video_url_to_download, ydl_opts)
+
+    return failed_urls
 
 
 def yt_subtitle_file_vtt_to_csv_converter(saved_folder_path: str = os.getcwd()):
