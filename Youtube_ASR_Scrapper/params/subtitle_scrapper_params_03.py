@@ -3,8 +3,8 @@ from pathlib import Path
 
 ## new section -- links scrapper
 
-is_finished_downloading = False
-is_finished_processing = False
+is_finished_downloading = True
+is_finished_processing = True
 
 # foldername_res_video_urls_scrapper = str(Path(os.getcwd()).parents[0])
 foldername_res_video_urls_scrapper = os.getcwd()

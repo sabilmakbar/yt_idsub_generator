@@ -11,7 +11,7 @@ whitelisted_title_phrases = None
 is_finished = True
 # foldername_res_video_meta_scrapper = str(Path(os.getcwd()).parents[0])
 foldername_res_video_meta_scrapper = os.getcwd()
-filename_res_video_meta_scrapper = "Scraped Video Meta from Channel (ID version).pkl"
+filename_res_video_meta_scrapper = "Scraped Video Meta from Channel (ID Version).pkl"
 
 save_path_res_video_meta_scrapper = os.path.join(foldername_res_video_meta_scrapper, 
                                                  filename_res_video_meta_scrapper)

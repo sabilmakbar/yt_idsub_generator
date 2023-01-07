@@ -71,9 +71,9 @@ if __name__ == "__main__":
 
     if do_scrape:
         # if this message appears: "Unable to download webpage: HTTP Error 429: Too Many Requests", do nothing since it still downloads the subtitle as usual
-        scrapper_general.yt_subtitle_downloader(download_lists, download_folder_path, yt_dlp_options)
-        if len(os.listdir(download_folder_path)) != len(download_lists):
-            raise AssertionError("The length of the downloaded subtitle doesn't match with its expected!")
+        failed_urls = scrapper_general.yt_subtitle_downloader(download_lists, download_folder_path, yt_dlp_options)
+        if len(os.listdir(download_folder_path)) != len(download_lists)-len(failed_urls):
+            print("The length of the downloaded subtitle doesn't match with its expected!")
 
     #process its subtitle data into final dataset
     do_data_process = subtitle_scrapper_params["checkpoint_bool_processing"]
@@ -82,4 +82,7 @@ if __name__ == "__main__":
     print(f"Starting process to tidying up YT subtitle data into DataFrame structure with its timestamp")
     print(f"Will save the result in {save_final_path}")
 
-    output = scrapper_df.df_loader_or_dumper(save_final_path, do_data_process, scrapper_df.scrapper_split_yt_subtitles, splitter=splitter_class_nn, df_path=download_folder_path, subtitle_col_name="text", start_stamp_col_name="start", stop_stamp_col_name="stop")
+    output = scrapper_df.df_loader_or_dumper(save_final_path, do_data_process, scrapper_df.scrapper_split_yt_subtitles,
+            splitter=splitter_class_nn, df_path=download_folder_path,
+            subtitle_col_name="text", start_stamp_col_name="start", stop_stamp_col_name="stop",
+            convert_text_to_int=False)

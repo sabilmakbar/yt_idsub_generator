@@ -28,6 +28,7 @@ class TextSplitter():
 
         self.splitter = splitter.load(lang)
 
+    #Clean doubled whitespace or more
     def __text_clean_consecutive_whitespace(self, text_input: str):
         """
         It takes a string as input, and returns a string with all consecutive whitespace characters
@@ -40,7 +41,7 @@ class TextSplitter():
         """
         return re.sub(r"\s+", r" ", text_input).strip()
 
-
+    #Split String to Sentences using NNSplitter model
     def split_sentence(self, text_input: str):
         """
         It splits a given string into a list of sentences based on NNSplitter
@@ -56,7 +57,7 @@ class TextSplitter():
 
         return [str(split).strip() for split in splitted_iter]
 
-
+    #Obtain word-level stamp from start and end timestamp
     def word_time_stamp(self, start:str, end:str, text_input:str, time_format = "%H:%M:%S"):
         """
         It takes a start time, end time, and text input, and returns a dictionary with the keys "ts",
@@ -75,7 +76,7 @@ class TextSplitter():
 
         return dict(zip(names, data))
 
-
+    #Obtain sentence-level stamp from start and end timestamp
     def sentence_time_stamp(self, start: str, end: str, text_input: str or list, time_format: str="%H:%M:%S", split_result=False):
         """
         The function returns a list of tuples, where each tuple contains the start and end time of the
@@ -105,8 +106,8 @@ class TextSplitter():
         else:
             return ts
 
-
-    def post_process_text_to_int_sentence(self, text_input: str or list):
+    #Convert string-based numbers into numbers
+    def post_process_text_to_int_sentence(self, text_input: str or list, convert_text_to_int: bool=True):
         """
         Do a prepcoess of changing text number to corresponding integer (in English lang)
         - If the input is a list, then apply the function to each element of the list.
@@ -114,13 +115,16 @@ class TextSplitter():
         - If the input is neither a list nor a string, then raise an error
 
         input:
-            >> text_input (str or list): text input to be processed
+            text_input (str or list): text input to be processed
         output:
             >> processed text_input: str or list, depends on input dtype
         """
 
         def join_splitted_num(text:str):
             return re.sub(r'(\d)\s+(\d)', r'\1\2', text)
+
+        # determine if the function text2int is used
+        text2int_fun = text2int if convert_text_to_int else (lambda text: text)
 
         #check if the text_input is an iterable
         if not isinstance(text_input, str):
@@ -129,20 +133,25 @@ class TextSplitter():
             except TypeError as e:
                 pass
             else:
-                return [text2int(join_splitted_num(str(val))).strip() for val in text_input]
-
-        #cast it into a string
-        try:
-            str(text_input)
-        except Exception as e:
-            print(e)
+                return [text2int_fun(join_splitted_num(str(val))).strip() for val in text_input]
         else:
-            return text2int(join_splitted_num(str(text_input))).strip()
+            #cast it into a string
+            try:
+                str(text_input)
+            except Exception as e:
+                print(e)
+            else:
+                return text2int_fun(join_splitted_num(str(text_input))).strip()
 
+    #Return second-difference of two timestamps
+    def _return_seconds_diff(self, start_ts: str, stop_ts: str):
+        return (pd.to_datetime(stop_ts)-pd.to_datetime(start_ts)).total_seconds()
 
+    #Split DF of YT subtitles with Timestamps
     def split_yt_subtitles(self, df_input: pd.DataFrame, subtitle_col_name: str,
                             start_stamp_col_name: str, stop_stamp_col_name: str,
-                            thres_no_voice_s: int=5, thres_speech_duration: int=20):
+                            thres_no_voice_s: int=5, thres_speech_duration: int=20,
+                            convert_text_to_int: bool=True):
 
         input_colnames = [subtitle_col_name, start_stamp_col_name, stop_stamp_col_name]
         if not all(colname in df_input.columns for colname in input_colnames):
@@ -150,12 +159,16 @@ class TextSplitter():
 
         text_output_list, ts_start_output_list, ts_stop_output_list = list(), list(), list()
 
-        text_appended = df_input.loc[df_input.index[0], subtitle_col_name]
-        start_ts = df_input.loc[df_input.index[0], start_stamp_col_name]
-        stop_ts = df_input.loc[df_input.index[0], stop_stamp_col_name]
-
         if df_input.shape[0]==0:
-            sentences = self.post_process_text_to_int_sentence(self.split_sentence(text_appended))
+            return None, None, None
+
+        text_appended = str(df_input.loc[df_input.index[0], subtitle_col_name])
+        start_ts = str(df_input.loc[df_input.index[0], start_stamp_col_name])
+        stop_ts = str(df_input.loc[df_input.index[0], stop_stamp_col_name])
+        sentence_speech_duration = self._return_seconds_diff(start_ts, stop_ts)
+
+        if df_input.shape[0]==1:
+            sentences = self.post_process_text_to_int_sentence(text_input = self.split_sentence(text_appended), convert_text_to_int = convert_text_to_int)
             ts_start_list, ts_stop_list = self.sentence_time_stamp(start_ts, stop_ts, sentences, split_result=True)
             return sentences, ts_start_list, ts_stop_list
 
@@ -166,41 +179,44 @@ class TextSplitter():
 
             if (idx+1 < df_input.shape[0]):
                 next_idx_data = df_input.loc[df_input.index[idx+1], :]
-                no_voice_seconds_diff = (pd.to_datetime(next_idx_data[start_stamp_col_name])-pd.to_datetime(curr_idx_data[stop_stamp_col_name])).total_seconds()
+                no_voice_seconds_diff = self._return_seconds_diff(str(curr_idx_data[stop_stamp_col_name]), str(next_idx_data[start_stamp_col_name]))
 
                 #readjust sentence speech duration with no_voice_seconds_diff due to some subtitle in a sentence might got splitted
                 sentence_speech_duration -= no_voice_seconds_diff
 
-            else: #end of row, set seconds_diff manually to thres_s+1 (to enter the case of adding sentence and ts data)
+            else: #end of row, set seconds_diff as None
                 no_voice_seconds_diff = None
 
-            text_appended = (text_appended + " " + curr_idx_data[subtitle_col_name]).strip()
+            text_appended = (text_appended + " " + str(curr_idx_data[subtitle_col_name])).strip()
             sentences = self.split_sentence(text_appended)
 
-            stop_ts = curr_idx_data[stop_stamp_col_name]
-            sentence_speech_duration = (pd.to_datetime(stop_ts)-pd.to_datetime(start_ts)).total_seconds()
+            stop_ts = str(curr_idx_data[stop_stamp_col_name])
+            sentence_speech_duration = self._return_seconds_diff(start_ts, stop_ts)
 
             if no_voice_seconds_diff is None or no_voice_seconds_diff > thres_no_voice_s or sentence_speech_duration > thres_speech_duration or len(sentences)>1:
-                ts_start_list, ts_stop_list = self.sentence_time_stamp(start_ts, stop_ts, text_appended, split_result=True)
-
-                text_output_list.extend(self.post_process_text_to_int_sentence(sentences[:-1]))
-                ts_start_output_list.extend(ts_start_list[:-1])
-                ts_stop_output_list.extend(ts_stop_list[:-1])
+                ts_start_list, ts_stop_list = self.sentence_time_stamp(start_ts, stop_ts, sentences, split_result=True)
 
                 #taking last element of splitted text and timestamp as new start if split is found, since it might be correlated with next row in DF
-                if len(sentences)>1:
-                    start_ts = ts_start_list[-1]
-                    text_appended = sentences[-1]
-                else: #taking next row as new start timestamp and None as text_appended
-                    start_ts = next_idx_data[start_stamp_col_name]
-                    text_appended = ""
+                if (idx+1 < df_input.shape[0]) and len(sentences)>1:
+                    text_output_list.extend(self.post_process_text_to_int_sentence(text_input = sentences[:-1], convert_text_to_int = convert_text_to_int))
+                    ts_start_output_list.extend(ts_start_list[:-1])
+                    ts_stop_output_list.extend(ts_stop_list[:-1])
 
-            #adding last row to sentence and timestamp
-            if (idx+1 == df_input.shape[0]): #last data, input last sentence and timestamp (no more concatenation)
-                ts_start_list, ts_stop_list = self.sentence_time_stamp(start_ts, stop_ts, text_appended, split_result=True)
+                    #assigning last entry of list as new start
+                    start_ts = str(ts_start_list[-1])
+                    sentence_speech_duration = self._return_seconds_diff(start_ts, str(ts_stop_list[-1]))
+                    text_appended = str(sentences[-1])
 
-                text_output_list.append(self.post_process_text_to_int_sentence(sentences[-1]))
-                ts_start_output_list.append(ts_start_list[-1])
-                ts_stop_output_list.append(ts_stop_list[-1])
+                else: #either last data or cutted due to duration-related threshold
+                    text_list = self.post_process_text_to_int_sentence(text_input = sentences, convert_text_to_int = convert_text_to_int)
+
+                    text_output_list.extend(text_list)
+                    ts_start_output_list.extend(ts_start_list)
+                    ts_stop_output_list.extend(ts_stop_list)
+
+                    if (idx+1 < df_input.shape[0]): #taking next row as new start timestamp and None as text_appended
+                        start_ts = str(next_idx_data[start_stamp_col_name])
+                        sentence_speech_duration = 0
+                        text_appended = ""
 
         return text_output_list, ts_start_output_list, ts_stop_output_list

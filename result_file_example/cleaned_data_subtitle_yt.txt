@@ -1,0 +1,3 @@
+The pickle package version: 4.0
+The pandas package version: 1.3.5
+The pyarrow package version: 10.0.1
