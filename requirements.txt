@@ -1,6 +1,7 @@
 beautifulsoup4==4.11.1
 nest_asyncio==1.5.5
 nnsplit==0.5.8-post0
+webvtt-py==0.4.6
 numpy==1.21.6
 pandas==1.3.5
 requests_html==0.10.0
