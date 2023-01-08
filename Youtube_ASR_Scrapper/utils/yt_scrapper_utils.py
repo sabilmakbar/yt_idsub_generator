@@ -40,7 +40,6 @@ import asyncio
 import yt_dlp
 from yt_dlp.utils import DownloadError
 
-#pip install webvtt-py (to get package webvtt)
 import webvtt
 import pandas as pd
 import numpy as np
@@ -86,6 +85,7 @@ def _spawn_driver():
     return driver
 
 
+#A Chrome Terminator
 def _terminate_chrome_driver(driver: webdriver.Chrome or webdriver.Firefox, action: str="quit"):
 
     if action not in ["quit", "close"]:
@@ -294,11 +294,11 @@ def yt_metadata_scrapper(video_urls: list, timeout: int = 60):
     return output_dict
 
 
-async def _get_html_yt_metadata(*args, shorts_identifier = "/shorts/", sleep_timer: int=0.7):
+async def _async_get_html_yt_metadata(*args, shorts_identifier = "/shorts/", sleep_timer: int=0.7):
     """Async Method for Retrieving metadata of given public videos.
-    Has to be called within function "yt_metadata_scrapper" to make the output works
+    Has to be called within function "async_yt_metadata_scrapper" to make the output works
     as intended.
-    It follows the input from "yt_metadata_scrapper"
+    It follows the input from "async_yt_metadata_scrapper"
     Reference: https://www.thepythoncode.com/article/get-youtube-data-python
     """
 
@@ -353,7 +353,7 @@ async def _get_html_yt_metadata(*args, shorts_identifier = "/shorts/", sleep_tim
                 return response.html.raw_html
 
 
-def _singular_parse_html_using_bs(html_raw):
+def _async_singular_parse_html_using_bs(html_raw):
     # create bs object to parse HTML
     soup = bs(html_raw, "html.parser")
 
@@ -399,19 +399,19 @@ def _list_parse_html_using_bs(html_list: list):
             result_list.append(None)
         else:
             try:
-                _singular_parse_html_using_bs(html)
+                _async_singular_parse_html_using_bs(html)
             except:
                 print(f"Exception occured in '_parse_html_using_bs'! Skipping the value for now...")
                 print(f"Skipping input no: {idx+1}")
                 print(f"Details: \n{traceback.print_stack()}")
                 result_list.append(None)
             else:
-                result_list.append(_singular_parse_html_using_bs(html))
+                result_list.append(_async_singular_parse_html_using_bs(html))
     
     return result_list
 
 
-async def _yt_metadata_scrapper(*args):
+async def _async_yt_metadata_scrapper(*args):
 
     default_timeout = 60
 
@@ -425,7 +425,7 @@ async def _yt_metadata_scrapper(*args):
         else:
             print("Unmatched args number! Expected only 2 args unpacked, received 0!")
 
-    html_list = await asyncio.gather(*[(_get_html_yt_metadata(video_url, timeout)) for video_url in video_url_list], return_exceptions=True)
+    html_list = await asyncio.gather(*[(_async_get_html_yt_metadata(video_url, timeout)) for video_url in video_url_list], return_exceptions=True)
 
     loop = asyncio.get_event_loop()
     with ThreadPoolExecutor(1) as _executor:
@@ -463,19 +463,19 @@ def run_async(func, *args, **kwargs):
         return asyncio.run(func(*args, **kwargs))
 
 
-# def yt_metadata_scrapper(video_urls: list, timeout: int = 60):
-#     """Retrieving a dict of metadata from YT URL input using asyncronous method
-#     input:
-#         channel_url (list of str) -- an list of url links of input video to be retrieved of its metadata
-#         timeout (int, optional) -- a timeout variable for waiting response
-#     output: output_dict (dict) -- a dict of metadata, which can be found on function "async_yt_metadata_scrapper"
-#     """
+def async_yt_metadata_scrapper(video_urls: list, timeout: int = 60):
+    """Retrieving a dict of metadata from YT URL input using asyncronous method
+    input:
+        channel_url (list of str) -- an list of url links of input video to be retrieved of its metadata
+        timeout (int, optional) -- a timeout variable for waiting response
+    output: output_dict (dict) -- a dict of metadata, which can be found on function "async_yt_metadata_scrapper"
+    """
 
-#     output = run_async(_yt_metadata_scrapper, video_urls, timeout)
+    output = run_async(_async_yt_metadata_scrapper, video_urls, timeout)
 
-#     output_dict = {"data": output}
+    output_dict = {"data": output}
 
-#     return output_dict
+    return output_dict
 
 
 #unpack video_meta output from dict to df
@@ -522,6 +522,7 @@ async def _yt_dlp_subtitle_downloader(*args):
     failed_urls = await asyncio.gather(*[(_singular_yt_dlp_subtitle_downloader(video_url, settings)) for video_url in video_url_list], return_exceptions=True)
 
     return failed_urls
+
 
 def yt_subtitle_downloader(video_urls: list, folder_path_to_save: str = os.getcwd(), ydl_opts : dict=None, lang: str="id"):
     """

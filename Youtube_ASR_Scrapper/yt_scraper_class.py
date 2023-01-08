@@ -25,8 +25,8 @@ class YTDataScrapper():
         return channel_url, all_public_links
 
     # A Python BS4 Scraper Collection for Retrieve the Meta Information (Title, Duration)
-    def yt_metadata_scrapper(self, video_urls: list, timeout: int = 60):
-        return yt_metadata_scrapper(video_urls, timeout)
+    def yt_metadata_scrapper(self, video_urls: list, timeout: int = 60, is_async: bool=True):
+        return async_yt_metadata_scrapper(video_urls, timeout) if is_async else yt_metadata_scrapper(video_urls, timeout)
 
     # A Python Function to extract its auto-subtitle and save it into .vtt format (then converted into .csv)
     def yt_subtitle_downloader(self, video_urls: list, folder_path_to_save: str = os.getcwd(), ydl_opts : dict=None):
@@ -53,7 +53,7 @@ class YTScrapperDF(YTDataScrapper):
         return iter_to_df_creator(("channel_url", "video_url"), channel_url, all_public_links)
 
     # Pandas Input Version of Metadata Scrapper (with batch-processing and saving)
-    def pd_yt_metadata_scrapper(self, df_input: pd.DataFrame, col_name_meta: str, save_path: str, batch_size: int = 10):
+    def pd_yt_metadata_scrapper(self, df_input: pd.DataFrame, col_name_meta: str, save_path: str, batch_size: int = 10, is_async:bool=True):
         data_to_scrape = df_input if col_name_meta not in df_input.columns else df_input[df_input[col_name_meta].isnull()]
         data_to_scrape_index = data_to_scrape.index
         all_public_links = data_to_scrape.video_url.to_list()
@@ -64,7 +64,7 @@ class YTScrapperDF(YTDataScrapper):
 
         for idx, data in enumerate(chunks):
             print("Processing data of chunk no {} out of {} chunks.".format(idx+1, len(chunks)))
-            video_meta = self.yt_metadata_scrapper(data)
+            video_meta = self.yt_metadata_scrapper(data, is_async=is_async)
             starting_idx = batch_size*idx
             finishing_idx = min(batch_size*(idx+1),len(data_to_scrape_index))
             df_input.loc[data_to_scrape_index[starting_idx:finishing_idx], col_name_meta] = video_meta["data"]
