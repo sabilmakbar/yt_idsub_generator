@@ -1,21 +1,43 @@
 import re
+import types
+import warnings
+from collections import Iterable
+
 from langdetect.detector_factory import DetectorFactory, PROFILES_DIRECTORY
 from langdetect.lang_detect_exception import LangDetectException
 
-def assert_text_type(text):
+
+def none_val_warning(warning_text):
+    """
+    If the value of the variable is None, then print a warning message.
+
+    Input:
+        warning_text: The text to be displayed in the warning
+    Output:
+        A warning object with category of 'RuntimeWarning'
+    """
+
+    warnings.warn(warning_text, category=RuntimeWarning)
+
+
+def _assert_text_type(text):
     """
     > This function checks if the input is a string, int, float, or None. If it's not, it raises a
-    TypeError. If it is, it returns the input
-    
-    :param text: The text to be converted into speech
-    :return: the text variable, which is either a string, None, int, or float.
+    TypeError. If it is not a None, it returns the input. If None, it returns a warning.
+
+    Input:
+        text: The var checked to text-castable format
+    Output:
+        str-casted text variable
     """
-    NoneType = type(None)
-    if not isinstance(text, (str, NoneType, int, float)):
-        raise TypeError(f"Received var type of {type(text).__name__}, expected either of 'str', 'int', 'float', or None!")
-    if isinstance(text, (int, float)): #cast into str
-        text = str(text)
-    return text
+
+    if text is None:
+        none_val_warning("The text input to '_assert_text_type' is None!")
+    elif not isinstance(text, (str, int, float)):
+        raise TypeError(f"Received var type of {type(text).__name__}, expected either of 'str', 'int', 'float'!")
+
+    #return casted str obj
+    return str(text).strip()
 
 
 def bracket_balancer(text: str):
@@ -25,12 +47,13 @@ def bracket_balancer(text: str):
     Doesn't consider recursively unbalanced bracket
 
     Input:
-        text (str)
+        text (str): the text to be bracket-balanced
     Output:
         The text with the brackets balanced.
     """
+
     bracket_pair_list = [("(", ")"), ("{", "}"), ("[", "]")]
-    text = assert_text_type(text)
+    text = _assert_text_type(text)
     for br_open, br_close in bracket_pair_list:
         #balance the brackets
         #1: fix unopened bracket
@@ -41,30 +64,40 @@ def bracket_balancer(text: str):
             text_modified = re.sub("((?=\[)\S*)(\s|$)", r"\1]\2", text)
         else:
             text_modified = text
-    return text_modified
+
+    return text_modified.strip()
 
 
 def detect_non_ascii(text: str):
-    text = assert_text_type(text)
+    """
+    It returns a list of all non-ASCII characters in the given text
+
+    Input:
+        text (str): text to be checked its non-ASCII chars
+    Output:
+        A list of all non-ascii characters in the text.
+    """
+
+    text = _assert_text_type(text)
     return re.findall(r'([^\x00-\x7F]+)', text) if text is not None else []
 
 
-def get_text_in_brackets(text: str, bracket_pair_list: list=[("(", ")"), ("{", "}"), ("[", "]")], pat_to_excl: list=None, return_distinct: bool=False):
+def get_text_in_brackets(text: str, bracket_pair_list: list=[("(", ")"), ("{", "}"), ("[", "]")], pat_to_excl: list=[], return_distinct: bool=False):
     """
     It takes a string and returns a list of strings that are enclosed in brackets
 
     Input:
         text (str): the text to be searched
         par_list (list of tuple pair, default = [("(", ")"), ("{", "}"), ("[", "]")]): list of tuples of opening and closing brackets
-        pat_to_excl (list, default None): pattern enclosed in tuples that wanted to be excluded (useful for avoiding token caught)
+        pat_to_excl (list, default empty list "[]"): pattern enclosed in tuples that wanted to be excluded (useful for avoiding token caught)
     Output:
         A list of lists of strings that are enclosed in brackets (list of ragged lists that has the len of n-pairs of brackets x pattern caught).
     """
-    NoneType = type(None)
-    text = assert_text_type(text)
-    for _var, _var_type, _arg_name in zip((bracket_pair_list, pat_to_excl, return_distinct), (list, (list, NoneType), bool), ("bracket_pair_list", "pat_to_excl", "return_distinct")):
+
+    text = _assert_text_type(text)
+    for _var, _var_type, _arg_name in zip((bracket_pair_list, pat_to_excl, return_distinct), (list, list, bool), ("bracket_pair_list", "pat_to_excl", "return_distinct")):
         if (not isinstance(_var,_var_type)):
-            raise TypeError(f"Arg passed type is unexpected for var {_arg_name}! Expected {_var_type.__name__} received {type(_var).__name__}!")
+            raise TypeError(f"Arg passed type is unexpected for var '{_arg_name}'! Expected {_var_type.__name__}, received {type(_var).__name__}!")
 
     if text is not None:
         text = bracket_balancer(text)
@@ -72,7 +105,7 @@ def get_text_in_brackets(text: str, bracket_pair_list: list=[("(", ")"), ("{", "
     else:
         result_list = [[] for _ in range(len(bracket_pair_list))]
 
-    if pat_to_excl is not None and len(pat_to_excl) > 0 and text is not None:
+    if len(pat_to_excl) > 0 and text is not None:
         for idx, result_par_encl in enumerate(result_list):
             result_list[idx] = [caught_text for caught_text in result_par_encl if caught_text not in pat_to_excl]
 
@@ -85,35 +118,25 @@ def get_text_in_brackets(text: str, bracket_pair_list: list=[("(", ")"), ("{", "
 def delete_text_in_unbalanced_brackets(text: str, bracket_pair_list: list=[("(", ")"), ("{", "}"), ("[", "]")], text_within_to_exclude: list=[]):
     """
     It takes a string and returns a list of strings that are cleaned from enclosed in brackets
-    
+
     Input:
         text (str): the text to be searched
-        par_list (list of tuple pair, default = [("(", ")"), ("{", "}"), ("[", "]")]): list of tuples of opening and closing brackets
-        pat_to_excl (list, default None): pattern enclosed in tuples that wanted to be excluded (useful for avoiding token caught)
+        bracket_pair_list (list of tuple pair, default = [("(", ")"), ("{", "}"), ("[", "]")]): list of tuples of opening and closing brackets
+        text_within_to_exclude (list, default empty list "[]"): pattern enclosed in brackets that wanted to be excluded (useful for avoiding token caught)
     Output:
-        A list of lists of strings that are enclosed in brackets (list of ragged lists that has the len of n-pairs of brackets x pattern caught).
+        A list of lists of strings that are enclosed in brackets (list of ragged lists that has the len of n-pairs of brackets times pattern caught).
     """
-    NoneType = type(None)
-    text = assert_text_type(text)
+
+    text = _assert_text_type(text)
     for _var, _var_type, _arg_name in zip((bracket_pair_list, text_within_to_exclude), (list, list), ("bracket_pair_list", "text_within_to_exclude")):
         if (not isinstance(_var,_var_type)):
-            raise TypeError(f"Arg passed type is unexpected for var {_arg_name}! Expected {_var_type.__name__} received {type(_var).__name__}!")
+            raise TypeError(f"Arg passed type is unexpected for var '{_arg_name}'! Expected {_var_type.__name__}, received {type(_var).__name__}!")
 
     if text is not None:
-        #create pat of component "\s*\[\s*" "{text_pat_a_to_excl}" "\s*\]\s*" and pat of component "\s*\[\s*" "{text_pat_b_to_excl}" "\s*\]\s*" with regex pipe (or logic)
-        # pat_within_chars_to_exclude = "|".join(["\s*\[\s*" + text + "\s*\]\s*" for text in text_within_to_exclude])
-        #encapsulate pat_within on a capturing group (to make it repeating) then capsulate those in capturing group
-        # re_to_excl = ""+
-
-        # # var_1:
-        # (\[+[^\[]*) ((?:\s*\[sen\]\s*|\s*\[tok\]\s*)+)([^\]]*\]+)
-        # # var_2:
-        # (\[+[^\[]*)(?:(?:([^\[\]]*?)(\s*?\[sen\]\s*?)+?([^\[\]]*?)|([^\[\]]*?)(\s*?\[tok\]\s*?)+?([^\[\]]*?))+)([^\]]*\]+)
-
         for br_open, br_close in bracket_pair_list:
             #detect all text within the bracket(s)
             re_to_get_bracket_pair_list = f"\{br_open}([^\{br_open}]*?)\{br_close}"
-            # (?:\{br_open}+|\s)(.*?)(?:\{br_close}+\s)
+            #ensure everything is cleansed before escaping the loop
             while True:
                 #balance the brackets
                 text = bracket_balancer(text)
@@ -125,37 +148,103 @@ def delete_text_in_unbalanced_brackets(text: str, bracket_pair_list: list=[("(",
 
                 pat_text_to_remove = "|".join([re.escape(pat) for pat in text_caught if pat not in text_within_to_exclude])
                 re_to_remove_text_inside_bracket = f"\{br_open}(?:{pat_text_to_remove})\{br_close}"
-                # f"(?:\{br_open}+|\s)(?:{pat_text_to_remove})(?:\{br_close}+\s)"
-                text = re.sub(re_to_remove_text_inside_bracket, "", text)
+                text = re.sub(re_to_remove_text_inside_bracket, "", text).strip()
 
-        return text
+        #return text if they're not deleted wholly, else not returning anything (None)
+        if text != "":
+            return text
+        else:
+            none_val_warning("Cleansed text from fn 'delete_text_in_unbalanced_brackets' is None!")
 
 
 def remove_non_ascii(text: str):
-    text = assert_text_type(text)
-    return re.sub(r'([^\x00-\x7F]+)', ' ', text) if text is not None else None
+    """
+    It removes all non-ascii characters from a string
+
+    Input:
+        text (str): The text to be cleaned
+    Output:
+        A string with all non-ascii characters removed.
+    """
+
+    text = _assert_text_type(text)
+    cleansed_text = re.sub(r'([^\x00-\x7F]+)', '', text).strip() if text is not None else None
+
+    #return text if they're not deleted wholly, else not returning anything (None)
+    if cleansed_text != "":
+        return cleansed_text
+    else:
+        none_val_warning("Cleansed text from fn 'remove_non_ascii' is None!")
 
 
-# def list_iterator_text_cleanser(text_list: list, concat_to_str: bool=False, separator: str=None, default_str_value):
-#     NoneType = type(None)
-#     for _var, _var_type, _arg_name in zip((text_list, concat_to_str, separator), ((list, NoneType), bool, (str, NoneType)), ("text_list", "concat_to_str", "separator")):
-#         if (not isinstance(_var,_var_type)):
-#             raise TypeError(f"Arg passed type is unexpected for var {_arg_name}! Expected {_var_type.__name__} received {type(_var).__name__}!")
-#     if concat_to_str and separator is None:
-#         raise AssertionError("The separator can't be None if the concat_to_str is set as True!")
+def iterator_text_fn_applier(fn, iter_obj, raiseNoneObjEval: bool=True, return_iter: bool=True, skip_none_after_cleansed : bool=True, concat_token: str=" "):
+    """
+    > It applies the function to each element in the iterable object, and returns the iterable object
+    with the function applied to each element
 
-#     if not_concat_to_str:
-#     return 
+    Input:
+        fn (any callable obj): will be assumed as the function to be applied to each element in the iterable object
+        iter_obj (any iterable except string): the object to be iterated
+        raiseNoneObjEval (bool, default True): if the 2nd Argument is None, raise ValueError. If False, return None
+        return_iter (bool, default True): the function will return the post-fn applied iterable object. If False, it'll return the concatenated string of post-fn applied obj
+        skip_none_after_cleansed (bool, default True): flag whether the None val in cleansed iter needs to be removed
+        concat_token (str, default " "): the token to concatenate the iterated object. Default is " " (space)
+    Output:
+        List or concatted string of the result of the function applied to each element of the iterable object.
+    """
+
+    for _obj, _expected_obj_type, _obj_name in zip((raiseNoneObjEval, return_iter, skip_none_after_cleansed, concat_token), (bool, bool, bool, str), ("raiseNoneObjEval", "return_iter", "skip_none_after_cleansed", "concat_token")):
+        if not isinstance(_obj, _expected_obj_type):
+            raise TypeError(f"Arg passed type is unexpected for var '{_obj_name}'! Expected {_expected_obj_type.__name__}, received {type(_obj).__name__}!")
+
+    if raiseNoneObjEval and iter_obj is None:
+        raise ValueError("The 2nd Argument is None while the value 'raiseNoneObjEval' is set True!")
+    elif iter_obj is None:
+        return None
+    else:
+        #short circuit, ensure the fn is callable and object is iterable
+        #ensure the object is not a Generator, since it'll be called twice (which Generator object couldn't)
+        if isinstance(iter_obj, types.GeneratorType):
+            raise TypeError("Received 2nd Argument (object to iterate) type as Generator! Store using list() method first since it'll call the iterable twice!")
+        if (not isinstance(iter_obj, Iterable)):
+            raise TypeError(f"Received 2nd Argument as non-iterable object! Type info: {type(iter_obj).__name__}")
+        if isinstance(iter_obj, str):
+            raise TypeError("Received 2nd Argument as string!")
+        if not callable(fn):
+            raise AssertionError(f"The 1st Argument must be callable (can be treated as fn)! Type info: {type(fn).__name__}")
+
+    #ensure and cast all elements in iterable object are castable to string
+    str_iter_obj = [_assert_text_type(val) for val in iter_obj]
+
+    #note: the None 'obj' within the 'str_iter_obj' is handled within the 'fn' itself
+    obj_after_iterated = [fn(text) for text in str_iter_obj]
+
+    #apply none post-process filtering
+    if skip_none_after_cleansed:
+        obj_after_iterated = [val.strip() for val in obj_after_iterated if val is not None]
+    else:
+        #if there's a None value on 'obj_after_iterated', it'll be changed with default empty str ("")
+        obj_after_iterated = [val.strip() if val is not None else "" for val in obj_after_iterated]
+
+    if return_iter:
+        return obj_after_iterated
+    #add whitespace on boundary after trimmed if 'concat_token' isn't whitespace
+    elif not re.match("\s+", concat_token):
+        return f" {concat_token.strip()} ".join(obj_after_iterated)
+    #defaulting 'concat_token' as period + whitespace
+    else:
+        return ". ".join(obj_after_iterated)
 
 
 def _init_langdetect_factory(prior_map: dict=None, seed: int=100):
     """
     It creates a detector object that will be used to detect the language of a given text
-    
+
     Input:
         prior_map_res (dict): Prior map probability distribution as init state for langdetect
-    :type prior_map_res: dict
-    :return: A detector object.
+        seed (int, default 100): Seed for langdetect_factory object (for reproducibility)
+    Output:
+        A detector object.
     """
 
     if prior_map is not None and not isinstance(prior_map, dict):
@@ -175,11 +264,20 @@ def _init_langdetect_factory(prior_map: dict=None, seed: int=100):
     return detector
 
 
-def get_langdetect_result(text: str, lang_of_interest:list=None, **kwargs):
-    
-    if not isinstance(text, str):
-        raise TypeError(f"Unexpected type of 'text' input! Expected 'str', received {type(text).__name__}!")
-    if lang_of_interest is not None and not isinstance(lang_of_interest, list):
+def get_langdetect_result(text: str, lang_of_interest:list=[], **kwargs):
+    """
+    > It takes in a string of text as input, and returns a dictionary of language probabilities from langdetect module
+
+    Input:
+        text (str): the text to be analyzed
+        lang_of_interest (list, default empty list "[]"): list of language codes to be returned. If empty list, all languages detected will be returned
+        **kwargs will be passed into langdetect detector initiation
+    Outupt:
+        A dictionary of language and its probability.
+    """
+
+    text = _assert_text_type(text)
+    if not isinstance(lang_of_interest, list):
         raise TypeError(f"Unexpected type of 'lang_of_interest' input! Expected 'list', received {type(lang_of_interest).__name__}!")
 
     detector = _init_langdetect_factory(**kwargs)
@@ -196,7 +294,7 @@ def get_langdetect_result(text: str, lang_of_interest:list=None, **kwargs):
         for res in list_res:
             dict_res[res.__repr__()[:2]] = float(res.__repr__()[3:])
 
-    if lang_of_interest is not None and len(lang_of_interest) > 0:
+    if len(lang_of_interest) > 0:
         #only collect relevant lang of interest
         dict_output = dict()
         for lang in lang_of_interest:

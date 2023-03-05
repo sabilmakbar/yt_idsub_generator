@@ -34,21 +34,24 @@ to_inspect_squared_set = to_inspect_squared.drop_duplicates()["squared"].to_list
 # %% cleanse the subtitle text based on eye-testing result
 # eye-test decision on non-ASCII chars: remove all of them
 # eye-test decision on brackets: remove all chars enclosed by square brackets (as it contain non-meaningful words)
-from utils import delete_text_in_unbalanced_brackets, remove_non_ascii
+from utils import delete_text_in_unbalanced_brackets, remove_non_ascii, iterator_text_fn_applier
 from config import sen_token, bracket_pair_list_to_cleanse
 
 delete_text_in_unbalanced_squared_brackets = partial(delete_text_in_unbalanced_brackets, bracket_pair_list=bracket_pair_list_to_cleanse)
+fn_to_apply = lambda text_list: iterator_text_fn_applier(iter_obj=text_list, fn=lambda x: delete_text_in_unbalanced_squared_brackets(remove_non_ascii(x)), raiseNoneObjEval=False, return_iter=False, concat_token=sen_token)
 
-def short_circuit_none_val_preprocess(sen_list, sen_token):
-    if sen_list is not None:
-        cleansed_val = [delete_text_in_unbalanced_squared_brackets(remove_non_ascii(sentence_text)) for sentence_text in sen_list]
-        return f" {sen_token} ".join(["" if val is None else val for val in cleansed_val])
+# def short_circuit_none_val_preprocess(sen_list, sen_token):
+#     if sen_list is not None:
+#         cleansed_val = [delete_text_in_unbalanced_squared_brackets(remove_non_ascii(sentence_text)) for sentence_text in sen_list]
+#         return f" {sen_token} ".join(["" if val is None else val for val in cleansed_val])
 
-par_short_circuit_none_val_preprocess = partial(short_circuit_none_val_preprocess, sen_token=sen_token)
-df["subtitle_cleaned"] = df["sen_list"].apply(par_short_circuit_none_val_preprocess)
+# par_short_circuit_none_val_preprocess = partial(short_circuit_none_val_preprocess, sen_token=sen_token)
+
+# fn_to_apply = iterator_text_fn_applier, 
+# %% apply preprocess fn to subtitle list
+df["subtitle_cleaned"] = df["sen_list"].apply(fn_to_apply)
 
 # %% get any text enclosed in parentheses again and see whether it has been truly cleansed (aside from sentence separator token)
-
 get_text_in_brackets = partial(get_text_in_brackets, return_distinct=True, bracket_pair_list=bracket_pair_list_to_cleanse)
 df["text_in_bracket_squared"] = df["subtitle_cleaned"].apply(get_text_in_brackets)
 
@@ -79,4 +82,5 @@ df_export_cleaned.to_feather("result_file_example/langdetect_cleaned_data_subtit
 
 df_export = df.drop(columns=["text_in_bracket", "non_ascii_text", "subtitle", "sen_list", "start_list", "stop_list", "text_in_bracket_squared"])
 df_export.to_feather("result_file_example/cleaned_data_subtitle_yt_post_processed.f")
+
 # %%
