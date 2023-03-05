@@ -29,7 +29,7 @@ class TextSplitter():
         self.splitter = splitter.load(lang)
 
     #Clean doubled whitespace or more
-    def __text_clean_consecutive_whitespace(self, text_input: str):
+    def __text_clean_consecutive_whitespace_and_non_ascii(self, text_input: str):
         """
         It takes a string as input, and returns a string with all consecutive whitespace characters
         replaced with a single space
@@ -39,7 +39,7 @@ class TextSplitter():
         output:
             The text is being returned with the consecutive whitespace removed.
         """
-        return re.sub(r"\s+", r" ", text_input.encode('ascii', errors='ignore').decode()).strip()
+        return re.sub(r"\s+", r" ", re.sub(r'[^\x00-\x7F]+',' ', text_input)).strip()
 
     #Split String to Sentences using NNSplitter model
     def split_sentence(self, text_input: str):
@@ -52,7 +52,7 @@ class TextSplitter():
             A list of strings, containing sentence per list entry.
         """
 
-        text_input = self.__text_clean_consecutive_whitespace(text_input)
+        text_input = self.__text_clean_consecutive_whitespace_and_non_ascii(text_input)
         splitted_iter = self.splitter.split([text_input])[0]
 
         return [str(split).strip() for split in splitted_iter]
@@ -72,7 +72,7 @@ class TextSplitter():
             A dictionary with the keys "ts", "char_pos", and "text" and values of the output from "dt_str_stamp_lin"
         """
         names = ["ts", "char_pos", "text"]
-        data = dt_str_stamp_lin(start, end, self.__text_clean_consecutive_whitespace(text_input), time_format)
+        data = dt_str_stamp_lin(start, end, self.__text_clean_consecutive_whitespace_and_non_ascii(text_input), time_format)
 
         return dict(zip(names, data))
 
