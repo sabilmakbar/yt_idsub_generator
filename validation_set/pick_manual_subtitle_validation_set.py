@@ -43,5 +43,5 @@ df_to_sample = df_join[(df_join["scorer"].between(df_join["score_thr_low"],df_jo
 top_k = 5
 df_val = df_to_sample.groupby('channel_url', group_keys=False).apply(lambda x: x.nlargest(top_k, ["scorer"])).reset_index(drop=True)
 
-# %% from here, the labeler pick 1 video from each channel to be labeled (due to limitations)
+# %% from here, the labeler pick 1 video from each channel to be labeled (due to resource limitation for labeler)
 df_val.to_csv("result_to_check.csv")

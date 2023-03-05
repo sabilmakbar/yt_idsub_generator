@@ -39,7 +39,7 @@ class TextSplitter():
         output:
             The text is being returned with the consecutive whitespace removed.
         """
-        return re.sub(r"\s+", r" ", re.sub(r'[^\x00-\x7F]+',' ', text_input)).strip()
+        return re.sub(r"\s+", r" ", re.sub(r'[^\x00-\x7F]+','', text_input)).strip()
 
     #Split String to Sentences using NNSplitter model
     def split_sentence(self, text_input: str):

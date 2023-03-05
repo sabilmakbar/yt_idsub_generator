@@ -40,14 +40,6 @@ from config import sen_token, bracket_pair_list_to_cleanse
 delete_text_in_unbalanced_squared_brackets = partial(delete_text_in_unbalanced_brackets, bracket_pair_list=bracket_pair_list_to_cleanse)
 fn_to_apply = lambda text_list: iterator_text_fn_applier(iter_obj=text_list, fn=lambda x: delete_text_in_unbalanced_squared_brackets(remove_non_ascii(x)), raiseNoneObjEval=False, return_iter=False, concat_token=sen_token)
 
-# def short_circuit_none_val_preprocess(sen_list, sen_token):
-#     if sen_list is not None:
-#         cleansed_val = [delete_text_in_unbalanced_squared_brackets(remove_non_ascii(sentence_text)) for sentence_text in sen_list]
-#         return f" {sen_token} ".join(["" if val is None else val for val in cleansed_val])
-
-# par_short_circuit_none_val_preprocess = partial(short_circuit_none_val_preprocess, sen_token=sen_token)
-
-# fn_to_apply = iterator_text_fn_applier, 
 # %% apply preprocess fn to subtitle list
 df["subtitle_cleaned"] = df["sen_list"].apply(fn_to_apply)
 
