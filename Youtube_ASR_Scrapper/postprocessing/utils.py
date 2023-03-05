@@ -7,7 +7,7 @@ from langdetect.detector_factory import DetectorFactory, PROFILES_DIRECTORY
 from langdetect.lang_detect_exception import LangDetectException
 
 
-def none_val_warning(warning_text):
+def none_val_warning(warning_text, **kwargs):
     """
     If the value of the variable is None, then print a warning message.
 
@@ -17,7 +17,13 @@ def none_val_warning(warning_text):
         A warning object with category of 'RuntimeWarning'
     """
 
-    warnings.warn(warning_text, category=RuntimeWarning)
+    #set warning category (there are different classes, see here: https://docs.python.org/3/library/warnings.html#warning-categories)
+    kwargs["category"] = kwargs.get("category", RuntimeWarning)
+
+    #stacklevel=k means drilldown the stacklevel into k prev execution that caused this warning
+    kwargs["stacklevel"] = kwargs.get("stacklevel", 2)
+
+    warnings.warn(warning_text, **kwargs)
 
 
 def _assert_text_type(text):
@@ -32,7 +38,7 @@ def _assert_text_type(text):
     """
 
     if text is None:
-        none_val_warning("The text input to '_assert_text_type' is None!")
+        none_val_warning("The text input to '_assert_text_type' is None!", stacklevel = 3)
     elif not isinstance(text, (str, int, float)):
         raise TypeError(f"Received var type of {type(text).__name__}, expected either of 'str', 'int', 'float'!")
 
@@ -54,18 +60,19 @@ def bracket_balancer(text: str):
 
     bracket_pair_list = [("(", ")"), ("{", "}"), ("[", "]")]
     text = _assert_text_type(text)
-    for br_open, br_close in bracket_pair_list:
-        #balance the brackets
-        #1: fix unopened bracket
-        if re.search(f"^[^\{br_open}]*(?<=\{br_close})", text):
-            text_modified = re.sub("(^|\s)(\S*(?<=\]))", r"\1[\2", text)
-        #1: fix unclosed bracket
-        elif re.search(f"(?=\{br_open})[^\{br_close}]*$", text):
-            text_modified = re.sub("((?=\[)\S*)(\s|$)", r"\1]\2", text)
-        else:
-            text_modified = text
+    if text is not None:
+        for br_open, br_close in bracket_pair_list:
+            #balance the brackets
+            #1: fix unopened bracket
+            if re.search(f"^[^\{br_open}]*(?<=\{br_close})", text):
+                text_modified = re.sub("(^|\s)(\S*(?<=\]))", r"\1[\2", text)
+            #1: fix unclosed bracket
+            elif re.search(f"(?=\{br_open})[^\{br_close}]*$", text):
+                text_modified = re.sub("((?=\[)\S*)(\s|$)", r"\1]\2", text)
+            else:
+                text_modified = text
 
-    return text_modified.strip()
+        return text_modified.strip()
 
 
 def detect_non_ascii(text: str):
@@ -154,7 +161,7 @@ def delete_text_in_unbalanced_brackets(text: str, bracket_pair_list: list=[("(",
         if text != "":
             return text
         else:
-            none_val_warning("Cleansed text from fn 'delete_text_in_unbalanced_brackets' is None!")
+            none_val_warning("Cleansed text from fn 'delete_text_in_unbalanced_brackets' is None!", stacklevel=2)
 
 
 def remove_non_ascii(text: str):
@@ -174,7 +181,7 @@ def remove_non_ascii(text: str):
     if cleansed_text != "":
         return cleansed_text
     else:
-        none_val_warning("Cleansed text from fn 'remove_non_ascii' is None!")
+        none_val_warning("Cleansed text from fn 'remove_non_ascii' is None!", stacklevel=2)
 
 
 def iterator_text_fn_applier(fn, iter_obj, raiseNoneObjEval: bool=True, return_iter: bool=True, skip_none_after_cleansed : bool=True, concat_token: str=" "):
