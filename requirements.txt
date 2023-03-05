@@ -10,3 +10,6 @@ webdriver_manager==3.5.4
 webvtt_py==0.4.6
 yt_dlp==2022.4.8
 pyarrow==10.0.1
+langdetect==1.0.9
+# optional, unused for now
+fasttext-langdetect==1.0.5

@@ -5,6 +5,9 @@ from functools import partial
 from utils import *
 
 # %%
+df = pd.read_csv("result_to_check.csv")
+df_other = pd.read_csv("result_to_check_backup.csv")
+# %%
 df_subtitle = pd.read_feather("/home/jupyter/cleaned_data_subtitle_yt.f")
 df_channel_info = pd.read_pickle("/home/jupyter/Scraped Video Meta from Channel (ID Version).pkl")
 
@@ -39,12 +42,6 @@ df_to_sample = df_join[(df_join["scorer"].between(df_join["score_thr_low"],df_jo
 # %%
 top_k = 5
 df_val = df_to_sample.groupby('channel_url', group_keys=False).apply(lambda x: x.nlargest(top_k, ["scorer"])).reset_index(drop=True)
-df_val.to_csv("result_to_check.csv")
 
-# %%
-# power_frac = 0.5
-# top_k = 3
-# seed = 125
-# val_frac = int(np.power(df_join.shape[0], power_frac))/df_join.shape[0]
-# # df_val = df_join.groupby('channel_url', group_keys=False).apply(lambda x: x.sample(frac=val_frac, random_state=seed)).reset_index()
-# df_val = df_join.groupby('channel_url', group_keys=False).apply(lambda x: x.nlargest(top_k, ["scorer"])).reset_index(drop=True)
+# %% from here, the labeler pick 1 video from each channel to be labeled (due to resource limitation for labeler)
+df_val.to_csv("result_to_check.csv")
