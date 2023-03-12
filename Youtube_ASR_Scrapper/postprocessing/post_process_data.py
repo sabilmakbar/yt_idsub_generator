@@ -70,7 +70,7 @@ df_filtered = df.loc[langdetect_res.index, :].reset_index(drop=True)
 # %% export cleansed data (with column values readjusted)
 
 df_export_cleaned = df_filtered.drop(columns=["text_in_bracket", "non_ascii_text", "subtitle", "sen_list", "start_list", "stop_list", "text_in_bracket_squared"])
-df_export_cleaned.to_feather("result_file_example/langdetect_cleaned_data_subtitle_yt_post_processed.f")
+df_export_cleaned.to_feather("result_file_example/cleaned_data_langdetect_subtitle_yt_post_processed.f")
 
 df_export = df.drop(columns=["text_in_bracket", "non_ascii_text", "subtitle", "sen_list", "start_list", "stop_list", "text_in_bracket_squared"])
 df_export.to_feather("result_file_example/cleaned_data_subtitle_yt_post_processed.f")
