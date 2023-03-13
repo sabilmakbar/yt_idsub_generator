@@ -1,4 +1,4 @@
-sen_token = "[sen]"
+sen_token = "[sep]"
 bracket_pair_list_to_cleanse=[("[", "]")]
 
 langdetect_prior_map = {"id": 0.8, "en":0.2}
